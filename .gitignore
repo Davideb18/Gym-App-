@@ -1,0 +1,19 @@
+# Common
+node_modules/
+.DS_Store
+.env
+dist/
+build/
+
+# Backend
+backend/dist/
+backend/.env
+
+# Frontend
+frontend/.expo/
+frontend/web-build/
+frontend/dist/
+
+# Prisma
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
