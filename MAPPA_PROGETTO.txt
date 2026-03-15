@@ -1,0 +1,73 @@
+*******************************************************************************
+*                        🗺️ MAPPA GLOBALE DEL PROGETTO 🗺️                        *
+*                                 GYM APP                                     *
+*******************************************************************************
+
+Questa mappa ti aiuta a trovare subito DOVE si trova una funzione e COSA fa.
+Usa i simboli per orientarti:
+  [📁] = Cartella
+  [📄] = File
+  [⚡] = Funzione Importante / Punto d'ingresso
+
+===============================================================================
+| 1. BACKEND (Il Server & Database)                                           |
+===============================================================================
+
+[📁] backend/src/
+ │
+ ├─ [📄] index.ts          <-- IL MANAGER (Avvia tutto e collega le rotte)
+ │
+ ├─ [📁] routes/           <-- I CAMERIERI (Smistano le richieste URL)
+ │   │
+ │   ├─ [📄] authRoutes.ts
+ │   │   ⚡ POST /auth/register -> Chiama la registrazione
+ │   │   ⚡ POST /auth/login    -> Chiama il login
+ │   │
+ │   └─ [📄] exerciseRoutes.ts
+ │       ⚡ POST /exercises      -> Crea un nuovo esercizio
+ │       ⚡ GET  /exercises      -> Prende tutti gli esercizi
+ │
+ ├─ [📁] controllers/      <-- GLI CHEF (Contengono la logica reale)
+ │   │
+ │   ├─ [📄] authController.ts
+ │   │   ⚡ register() -> Crea utente, cripta password (bcrypt)
+ │   │   ⚡ login()    -> Verifica password e dà il "pass" (Token JWT)
+ │   │
+ │   └─ [📄] exerciseController.ts
+ │       ⚡ createExercise()  -> Salva i dettagli di un esercizio nel DB
+ │       ⚡ getAllExercises() -> Recupera la lista dal DB per l'App
+ │
+ └─ [📁] services/         <-- GLI ATTREZZI (Connessioni esterne)
+     │
+     └─ [📄] prisma.ts
+         ⚡ prisma -> Il ponte unico per parlare con il Database (PostgreSQL)
+
+[📁] backend/prisma/
+ └─ [📄] schema.prisma     <-- LO SCHEMA (Tabelle: User, Exercise, Workout, Set)
+
+
+===============================================================================
+| 2. SHARED (Il Linguaggio Comune)                                            |
+===============================================================================
+
+[📁] shared/
+ └─ [📄] types.ts          <-- IL DIZIONARIO (Definisce come sono fatti i dati)
+     ⚡ Exercise           -> Nome, gruppo muscolare, attrezzatura...
+     ⚡ User               -> Email, password, nome...
+
+
+===============================================================================
+| 3. FRONTEND (L'Interfaccia App)                                            |
+===============================================================================
+
+[📁] frontend/
+ ├─ [📄] App.tsx           <-- LA PORTA (Punto d'inizio dell'App)
+ ├─ [📁] src/
+ │   ├─ [📁] screens/      <-- LE PAGINE (Login, Home, Allenamento)
+ │   └─ [📁] components/   <-- I PEZZI (Bottoni, Input, Liste)
+ └─ [📄] package.json      <-- Configurazione Expo/React Native
+
+
+*******************************************************************************
+* NOTE: Aggiorna questo file ogni volta che crei un nuovo Controller o Rotta! *
+*******************************************************************************
