@@ -12,5 +12,8 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^7.5.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
   }
 }

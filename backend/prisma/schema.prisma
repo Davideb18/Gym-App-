@@ -7,9 +7,8 @@ generator client {
 }
 
 model User {
-  id        String    @id @default(uuid())
+  id        String    @id
   email     String    @unique
-  password  String
   name      String?
   workouts  Workout[]
   createdAt DateTime  @default(now())
