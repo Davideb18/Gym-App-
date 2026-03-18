@@ -28,6 +28,10 @@ const createWorkout = async (req: AuthRequest, res: Response) => {
             reps: parseInt(set.reps),
             weight: parseFloat(set.weight),
             rpe: set.rpe ? parseInt(set.rpe) : null,
+            rir: set.rir ? parseInt(set.rir) : null,
+            type: set.type || 'NORMAL',
+            weightUnit: set.weightUnit || 'kg',
+            isPremium: set.isPremium || false,
             exerciseId: set.exerciseId,
           })),
         },
@@ -132,4 +136,84 @@ const deleteWorkout = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export { createWorkout, getWorkouts, getWorkoutById, deleteWorkout };
+// ---- FUNZIONE PER CREARE UNA SCHEDA (TEMPLATE)
+const createTemplate = async (req: AuthRequest, res: Response) => {
+  const { name, notes, exercises } = req.body;
+  const userId = req.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Utente non autenticato' });
+  }
+
+  try {
+    // Usiamo Prisma per creare tutto in un colpo solo (Nested Create)
+    const template = await prisma.workoutTemplate.create({
+      data: {
+        name,
+        notes,
+        userId: userId as string,
+        // Creiamo gli esercizi legati a questa scheda
+        exercises: {
+          create: exercises.map((ex: any, exIndex: number) => ({
+            exerciseId: ex.exerciseId,
+            order: exIndex, // Salviamo l'ordine dell'esercizio
+            // E per ogni esercizio, creiamo le serie predefinite
+            sets: {
+              create: ex.sets.map((set: any, setIndex: number) => ({
+                reps: set.reps ? parseInt(set.reps) : null,
+                weight: set.weight ? parseFloat(set.weight) : null,
+                rpe: set.rpe ? parseInt(set.rpe) : null,
+                type: set.type || 'NORMAL',
+                order: setIndex, // Salviamo l'ordine della serie
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        exercises: {
+          include: {
+            sets: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json(template);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ error: 'Errore durante la creazione della scheda' });
+  }
+};
+
+// --- FUNZIONE PER RECUPERARE TUTTE LE SCHEDE
+const getTemplates = async (req: AuthRequest, res: Response) => {
+  const userId = req.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Utente non autenticato' });
+  }
+
+  try {
+    const templates = await prisma.workoutTemplate.findMany({
+      where: { userId: userId as string },
+      include: {
+        exercises: {
+          include: {
+            exercise: true, // Prende nome e muscolo dell'esercizio
+            sets: true,     // Prende le serie predefinite
+          },
+        },
+      },
+    });
+
+    res.json(templates);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Errore durante il recupero delle schede' });
+  }
+};
+
+
+
+export { createWorkout, getWorkouts, getWorkoutById, deleteWorkout, createTemplate, getTemplates };

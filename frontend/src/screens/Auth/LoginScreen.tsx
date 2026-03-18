@@ -15,116 +15,130 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { BlurView } from 'expo-blur';
-import { supabase } from '../../api/supabaseClient';
+import { useAuthStore } from '../../store/useAuthStore';
+import Animated, { 
+  FadeInDown, 
+  FadeInUp, 
+  FadeIn,
+  Layout,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring
+} from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
 
+
+import { Mail, Lock, ChevronRight, User, Eye, EyeOff } from 'lucide-react-native';
+
 export default function LoginScreen() {
+  const { signIn, signUp } = useAuthStore();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  // FUNCTION TO LOGIN
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Errore', 'Inserisci email e password per entrare nel laboratorio.');
+  // Animated values for button
+  const scale = useSharedValue(1);
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const validateEmail = (email: string) => {
+    return email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+  };
+
+  const handleAuth = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      Alert.alert('Errore', 'Inserisci email e password.');
+      return;
+    }
+
+    if (!validateEmail(trimmedEmail)) {
+      Alert.alert('Errore', 'Inserisci un indirizzo email valido.');
+      return;
+    }
+
+    if (isSignUp && !name.trim()) {
+      Alert.alert('Errore', 'Per favore, inserisci il tuo nome.');
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
+    const { error } = isSignUp 
+      ? await signUp(trimmedEmail, password) 
+      : await signIn(trimmedEmail, password);
 
     if (error) {
-      Alert.alert('Accesso Negato', error.message);
-    } else {
-      // Il listener in App.tsx o il router gestirà il cambio di schermata
-      console.log('Accesso eseguito con successo!');
+      Alert.alert('Errore', error.message);
     }
     setLoading(false);
   };
 
-  // FUNCTION TO SIGN UP
-  const handleSignUp = async () => {
-    if (!email || !password) {
-      Alert.alert('Errore', 'Inserisci email e password per entrare nel laboratorio.');
-      return;
-    }
-
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-    });
-
-    if (error) {
-      Alert.alert('Accesso Negato', error.message);
-    } else {
-      // Il listener in App.tsx o il router gestirà il cambio di schermata
-      console.log('Accesso eseguito con successo!');
-    }
-  };
-
   return (
-    <View className="flex-1 bg-black">
-      <StatusBar style="light" />
+    <View className="flex-1">
+      <StatusBar style="dark" />
 
-      {/* 1. CINEMATIC GRADIENT BACKGROUND */}
+      {/* 1. EXACT GRADIENT BACKGROUND */}
       <LinearGradient
-        colors={['#000000', '#1a1a1a', '#2d0a0a', '#000000']}
+        colors={['#4B5563', '#FFFFFF', '#4B5563']}
         className="absolute inset-0"
       />
 
-      {/* 2. HERO IMAGE (WIDER) */}
-      <View className="absolute inset-0 px-4 py-8 items-center justify-center">
-        <View className="w-full h-full rounded-[48px] overflow-hidden border border-white/10 shadow-2xl">
-          <ImageBackground
-            source={require('../../../assets/images/fitness_hero_bg.png')}
-            className="flex-1"
-            imageStyle={{ borderRadius: 48 }}
-            resizeMode="cover"
-          >
-            {/* Darker Overlay */}
-            <LinearGradient
-              colors={['rgba(0,0,0,0.75)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.98)']}
-              className="absolute inset-0"
-            />
-          </ImageBackground>
-        </View>
-      </View>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 justify-center items-center px-8"
+        className="flex-1 justify-center items-center px-6"
       >
-        {/* 3. LOGO AREA */}
-        <View className="items-center mb-10">
-          <Text className="text-white text-6xl font-[900] tracking-[-3px]">
-            GYM<Text className="text-[#E50914]">APP</Text>
-          </Text>
-          <Text className="text-[#888] text-sm font-bold uppercase tracking-[2px] mt-[-4px]">
-            Sculpt your future.
-          </Text>
-        </View>
-
-        {/* 4. LOGIN FORM OVERLAY */}
-        <BlurView
-          intensity={90}
-          tint="dark"
-          className="w-full rounded-[40px] p-8 border border-white/10 bg-black/60 overflow-hidden"
+        {/* 2. LOGO AREA */}
+        <Animated.View 
+          entering={FadeInDown.delay(200).duration(1000).springify()}
+          className="items-center mb-10"
         >
-          <View className="gap-y-6">
-            <View>
-              <Text className="text-[#AAA] text-[10px] font-extrabold uppercase tracking-[1.5px] mb-2 ml-1">
-                Email Address
-              </Text>
+          <View className="items-center">
+            <Text className="text-black text-[120px] font-[1000] tracking-[-12px] uppercase leading-[90px]">
+              THE
+            </Text>
+            <Text className="text-black text-[110px] font-[1000] tracking-[-10px] uppercase leading-[90px] border-t-[10px] border-black pt-2 mt-2">
+              LAB
+            </Text>
+          </View>
+          
+          <Text className="text-black/20 font-black mt-16 text-[10px] uppercase tracking-[6px]">
+            Laboratory Access v6.0
+          </Text>
+        </Animated.View>
+
+        {/* 3. LOGIN/SIGNUP FORM */}
+        <Animated.View 
+          entering={FadeInUp.delay(400).duration(1000).springify()}
+          className="w-full"
+        >
+          <View className="gap-y-4">
+            
+            {/* Name Input (Only for Signup) */}
+            {isSignUp && (
+              <View className="bg-white/70 rounded-[22px] border border-black/10 flex-row items-center px-5 py-1.5 shadow-sm">
+                <User size={20} color="#666" strokeWidth={2.5} />
+                <TextInput
+                  placeholder="Full Name"
+                  placeholderTextColor="#A0A0A0"
+                  className="flex-1 p-4 text-black text-base font-bold"
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+            )}
+
+            {/* Email Input */}
+            <View className="bg-white/70 rounded-[22px] border border-black/10 flex-row items-center px-5 py-1.5 shadow-sm">
+              <Mail size={20} color="#666" strokeWidth={2.5} />
               <TextInput
-                placeholder="email@example.com"
-                placeholderTextColor="#555"
-                className="bg-white/5 rounded-2xl p-4 text-white text-base border border-white/10"
+                placeholder="Email Address"
+                placeholderTextColor="#A0A0A0"
+                className="flex-1 p-4 text-black text-base font-bold"
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
@@ -132,98 +146,106 @@ export default function LoginScreen() {
               />
             </View>
 
-            <View>
-              <Text className="text-[#AAA] text-[10px] font-extrabold uppercase tracking-[1.5px] mb-2 ml-1">
-                Password
-              </Text>
+            {/* Password Input */}
+            <View className="bg-white/70 rounded-[22px] border border-black/10 flex-row items-center px-5 py-1.5 shadow-sm">
+              <Lock size={20} color="#666" strokeWidth={2.5} />
               <TextInput
-                placeholder="••••••••"
-                placeholderTextColor="#555"
-                secureTextEntry
-                className="bg-white/5 rounded-2xl p-4 text-white text-base border border-white/10"
+                placeholder="Password"
+                placeholderTextColor="#A0A0A0"
+                secureTextEntry={!showPassword}
+                className="flex-1 p-4 text-black text-base font-bold"
                 value={password}
                 onChangeText={setPassword}
               />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff size={20} color="#666" /> : <Eye size={20} color="#666" />}
+              </TouchableOpacity>
             </View>
 
-            {/* WEIGHT BENCH BUTTON */}
+            {/* MAIN BUTTON */}
             <TouchableOpacity
               activeOpacity={0.9}
-              className="mt-2"
-              onPress={() => (isSignUp ? handleSignUp() : handleLogin())}
+              className="mt-4"
+              onPressIn={() => (scale.value = withSpring(0.97))}
+              onPressOut={() => (scale.value = withSpring(1))}
+              onPress={handleAuth}
               disabled={loading}
             >
-              <View
-                className={`bg-[#E50914] p-5 rounded-2xl items-center border-b-[6px] border-[#8a060d] shadow-lg shadow-[#E50914]/50 ${loading ? 'opacity-70' : ''}`}
+              <Animated.View
+                style={buttonAnimatedStyle}
+                className={`bg-[#1A1A1A] py-5 rounded-[22px] items-center shadow-2xl ${loading ? 'opacity-70' : ''}`}
               >
                 {loading ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text className="text-white text-lg font-[900] uppercase tracking-[2px]">
-                    {isSignUp ? 'Create Account' : 'Enter the Lab'}
+                  <Text className="text-white text-lg font-bold uppercase tracking-[4px]">
+                    {isSignUp ? 'Apply Now' : 'Sign In'}
                   </Text>
                 )}
-              </View>
+              </Animated.View>
             </TouchableOpacity>
 
-            <TouchableOpacity className="items-center">
-              <Text className="text-[#444] font-bold text-xs uppercase tracking-widest">
-                Lost access?
+            {/* DEV BYPASS - SOLO PER SVILUPPO */}
+            <TouchableOpacity 
+              onPress={() => {
+                //@ts-ignore
+                useAuthStore.getState().setAuth({ user: { email: 'dev@thelab.fit' }, access_token: 'dev' });
+              }}
+              className="items-center mt-2"
+            >
+              <Text className="text-gray-300 font-bold text-[8px] uppercase tracking-[2px]">
+                Dev: Skip Login & Enter Lab
               </Text>
             </TouchableOpacity>
+
+            {/* SEPARATOR */}
+            <View className="flex-row items-center my-6">
+              <View className="flex-1 h-[1px] bg-black/10" />
+              <Text className="text-black/30 text-[9px] font-black uppercase tracking-[3px] px-6">
+                or sign in with
+              </Text>
+              <View className="flex-1 h-[1px] bg-black/10" />
+            </View>
+
+            {/* SOCIAL BRAND BUTTONS */}
+            <View className="gap-y-3">
+              <TouchableOpacity
+                className="bg-white border border-black/10 py-4 rounded-[22px] flex-row items-center px-8 shadow-sm"
+                onPress={() => Alert.alert('Social', 'Coming Soon')}
+              >
+                <View className="w-5 h-5 bg-black/5 rounded-full items-center justify-center mr-4">
+                  <Text className="text-black font-black text-[10px]">G</Text>
+                </View>
+                <Text className="text-black font-black text-xs uppercase tracking-[3px] flex-1 text-center">Google Access</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                className="bg-black py-4 rounded-[22px] flex-row items-center px-8 shadow-md"
+                onPress={() => Alert.alert('Social', 'Coming Soon')}
+              >
+                <View className="w-5 h-5 bg-white/20 rounded-full items-center justify-center mr-4">
+                  <Text className="text-white font-black text-[10px]">A</Text>
+                </View>
+                <Text className="text-white font-black text-xs uppercase tracking-[3px] flex-1 text-center">Apple ID</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setIsSignUp(!isSignUp)}
-              className="items-center mt-2"
+              className="items-center mt-6"
             >
-              <Text className="text-[#888] font-bold text-xs uppercase tracking-widest">
-                {isSignUp ? 'Already a member? Login' : "Don't have an account? Sign Up"}
-              </Text>
+              <View className="flex-row">
+                <Text className="text-black/30 font-bold uppercase text-[10px] tracking-widest">
+                  {isSignUp ? 'Existing member? ' : "Don't have an account? "}
+                </Text>
+                <Text className="text-black font-black uppercase text-[10px] tracking-[3px] border-b-2 border-black/10">
+                  {isSignUp ? 'Sign In' : 'Sign Up'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
-        </BlurView>
-
-        {/* 5. PLATE SOCIAL SECTION */}
-        <View className="w-full mt-10 items-center">
-          <View className="flex-row items-center w-full mb-6">
-            <View className="flex-1 h-[1px] bg-white/5" />
-            <Text className="text-[#333] text-[9px] font-black uppercase tracking-[3px] px-4">
-              Power Up With
-            </Text>
-            <View className="flex-1 h-[1px] bg-white/5" />
-          </View>
-
-          <View className="flex-row gap-x-6">
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => Alert.alert('Social', 'In arrivo...')}
-            >
-              <Image
-                source={require('../../../assets/images/google_plate.png')}
-                className="w-16 h-16 rounded-full"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => Alert.alert('Social', 'In arrivo...')}
-            >
-              <Image
-                source={require('../../../assets/images/fb_plate.png')}
-                className="w-16 h-16 rounded-full"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => Alert.alert('Social', 'In arrivo...')}
-            >
-              <Image
-                source={require('../../../assets/images/apple_plate.png')}
-                className="w-16 h-16 rounded-full"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </View>
   );

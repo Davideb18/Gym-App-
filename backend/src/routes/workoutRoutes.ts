@@ -5,7 +5,9 @@ import {
     createWorkout, 
     getWorkouts, 
     getWorkoutById, 
-    deleteWorkout 
+    deleteWorkout,
+    createTemplate,
+    getTemplates
 } from '../controllers/workoutController.js';
 // Importiamo il buttafuori che abbiamo creato
 import { authenticateToken } from '../middlewares/authMiddleware.js';
@@ -20,14 +22,22 @@ router.use(authenticateToken);
 // Quando arriva una richiesta POST a "/workouts/", chiama la funzione createWorkout
 router.post('/', createWorkout);
 
+// Per creare una nuova scheda
+router.post('/templates', createTemplate);
+
 // Quando arriva una richiesta GET a "/workouts/", chiama getWorkouts (prendi tutti)
 router.get('/', getWorkouts);
 
 // Quando arriva GET a "/workouts/ID_SPECIFICO", prende solo quell'allenamento
 router.get('/:id', getWorkoutById);
 
+// Per recuperare tutte le schede dell'utente
+router.get('/templates', getTemplates);
+
 // Quando arriva DELETE a "/workouts/ID_SPECIFICO", cancella quell'allenamento
 router.delete('/:id', deleteWorkout);
+
+
 
 // Esportiamo il router per collegarlo al server principale (index.ts)
 export default router;

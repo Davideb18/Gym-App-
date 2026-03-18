@@ -1,5 +1,7 @@
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -7,21 +9,23 @@ generator client {
 }
 
 model User {
-  id        String    @id
-  email     String    @unique
-  name      String?
-  workouts  Workout[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id               String            @id
+  email            String            @unique
+  name             String?
+  workouts         Workout[]
+  workoutTemplates WorkoutTemplate[] // Relazione con le schede
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }
 
 model Exercise {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  muscleGroup String
-  equipment   String?
-  description String?
-  sets        Set[]
+  id                String             @id @default(uuid())
+  name              String             @unique
+  muscleGroup       String
+  equipment         String?
+  description       String?
+  sets              Set[]
+  templateExercises TemplateExercise[] // Relazione con i modelli di esercizio
 }
 
 model Workout {
@@ -40,8 +44,53 @@ model Set {
   reps       Int
   weight     Float
   rpe        Int?
+  rir        Int?
+  type       SetType  @default(NORMAL)
+  weightUnit String   @default("kg")
+  isPremium  Boolean  @default(false)
   exerciseId String
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
   workoutId  String
   workout    Workout  @relation(fields: [workoutId], references: [id])
+}
+
+enum SetType {
+  NORMAL
+  WARMUP
+  DROPSET
+  PYRAMID
+  BACKOFF
+  FAILURE
+}
+
+model WorkoutTemplate {
+  id        String             @id @default(uuid())
+  name      String
+  notes     String?
+  userId    String
+  user      User               @relation(fields: [userId], references: [id])
+  exercises TemplateExercise[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+model TemplateExercise {
+  id         String          @id @default(uuid())
+  templateId String
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id])
+  exerciseId String
+  exercise   Exercise        @relation(fields: [exerciseId], references: [id])
+  sets       TemplateSet[]
+  order      Int
+}
+
+model TemplateSet {
+  id                 String           @id @default(uuid())
+  templateExerciseId String
+  templateExercise   TemplateExercise @relation(fields: [templateExerciseId], references: [id])
+  reps               Int?
+  weight             Float?
+  rpe                Int?
+  type               SetType          @default(NORMAL)
+  order              Int
 }
