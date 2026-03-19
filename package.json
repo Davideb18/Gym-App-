@@ -8,12 +8,14 @@
     "shared"
   ],
   "scripts": {
+    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:start\"",
     "install:all": "npm install",
     "frontend:start": "npm run start -w frontend",
     "backend:dev": "npm run dev -w backend",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "prettier": "^3.8.1"
   }
 }
