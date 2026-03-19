@@ -11,23 +11,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Plus, Dumbbell, History, Users, Layout, ChevronRight } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { supabase } from '../../api/supabaseClient';
 import { useAuthStore } from '../../store/useAuthStore';
-
-// MOCK URL for now
-const API_URL = 'http://localhost:3001';
 
 export default function SchedeScreen() {
   const { session } = useAuthStore();
 
-  // Fetch templates from the backend
+  // Fetch templates from Supabase
   const { data: templates, isLoading } = useQuery({
     queryKey: ['templates'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/workouts/templates`, {
-        headers: { Authorization: `Bearer ${session?.access_token}` }
-      });
-      return response.data;
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*');
+      
+      if (error) throw error;
+      return data;
     },
     enabled: !!session?.access_token,
   });

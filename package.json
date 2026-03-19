@@ -1,17 +1,17 @@
 {
-  "name": "gym-app",
+  "name": "gym-app-monorepo",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
   "scripts": {
+    "install:all": "npm install",
+    "frontend:start": "npm run start -w frontend",
+    "backend:dev": "npm run dev -w backend",
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "@prisma/client": "^7.5.0"
   },
   "devDependencies": {
     "prettier": "^3.8.1"
