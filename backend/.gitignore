@@ -1,5 +1,33 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# Dependencies
+node_modules/
 
-/generated/prisma
+# Build outputs
+dist/
+build/
+
+# Environment
+.env.local
+
+# Prisma
+.prisma/
+
+# macOS
+.DS_Store
+*.pem
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Key files
+*.key
+*.jks
+*.p8
+*.p12
+*.mobileprovision

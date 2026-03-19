@@ -1,19 +1,25 @@
 # Common
 node_modules/
-.DS_Store
-.env
 dist/
 build/
 
-# Backend
+# Environment
+.env.local
+
+# macOS
+.DS_Store
+*.pem
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Build outputs
 backend/dist/
-backend/.env
-
-# Frontend
-frontend/.expo/
-frontend/web-build/
-frontend/dist/
-
-# Prisma
-backend/prisma/dev.db
-backend/prisma/dev.db-journal
+backend/build/
