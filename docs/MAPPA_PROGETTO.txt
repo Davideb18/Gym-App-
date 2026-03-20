@@ -1,62 +1,55 @@
 *******************************************************************************
 *                        🗺️ MAPPA GLOBALE DEL PROGETTO 🗺️                        *
-*                                 GYM APP                                     *
+*                                 THE LAB PRO                                 *
 *******************************************************************************
 
-Questa mappa ti aiuta a trovare subito DOVE si trova una funzione e COSA fa.
-Usa i simboli per orientarti:
-  [📁] = Cartella
-  [📄] = File
-  [⚡] = Funzione Importante / Punto d'ingresso
-  [🔥] = Nuova Funzione Social / Roadmap
+Questa mappa riflette l'architettura HI-TECH "Direct Supabase".
 
 ===============================================================================
-| 0. RADICE E CONFIGURAZIONE (Global)                                         |
+| 1. DATABASE & AUTH (Supabase Cloud - Il Cuore Pulsante)                    |
 ===============================================================================
 
-[📄] .prettierrc          <-- IL "PETTINE" (Regole di formattazione globali)
-[📄] ROADMAP_MVP.md       <-- LA BUSSOLA (Piano 2 mesi: Ranking, Chat, Ghost)
-[📄] package.json         <-- Manager dipendenze globali
+[☁️] Supabase Project: `the-lab-pro`
+ │
+ ├─ [🔐] Auth: Gestione utenti, Email, Google Login, Apple Login.
+ │
+ ├─ [🗄️] Database (PostgreSQL):
+ │   ├─ [📊] profiles: Dati utente sincronizzati automaticamente dall'Auth.
+ │   ├─ [🏋️] exercises: Libreria globale di tutti gli esercizi.
+ │   ├─ [📝] workouts: Sessioni di allenamento con volumi e record.
+ │   └─ [🔢] sets: I singoli dati tecnici (Reps, Kg, RPE, RIR).
+ │
+ └─ [🛡️] RLS Policies: Regole di sicurezza per impedire accessi non autorizzati.
 
 ===============================================================================
-| 1. BACKEND (Il Server & Database Centralizzato)                             |
+| 2. BACKEND AI (Il "Cervello" - Node.js App)                                  |
 ===============================================================================
 
 [📁] backend/src/
  │
- ├─ [📄] index.ts          
+ ├─ [📄] index.ts          <-- Punto di ingresso (Porta 3001).
  │
- ├─ [📁] routes/           
- │   ├─ [📄] authRoutes.ts     <-- Finalizzazione login & sessioni (Settimana 1)
- │   ├─ [📄] workoutRoutes.ts  <-- Gestione Schede & Log Pro (Settimana 1-2)
- │   └─ [📄] aiRoutes.ts       <-- Analisi & Consigli Allenamento (Settimana 2)
- │
- ├─ [📁] controllers/      
- │   ├─ [📄] workoutController.ts (Architettura Schede & Logica Volume)
- │   ├─ [📄] aiController.ts      (Motore di consigli & AI Coach)
- │   └─ [📄] analyticsController.ts (Gestione dati per grafici)
- │
- └─ [📁] services/         <-- Prisma (Schema per Serie/Esercizi/PR)
+ ├─ [📁] ai/               <-- Logica per Pose Estimation & AI Coach. (In arrivo)
+ └─ [📁] analytics/        <-- Calcoli pesanti per grafici pro e volumi. (In arrivo)
 
 ===============================================================================
-| 2. FRONTEND (L'App Mobile - High Performance)                               |
+| 3. FRONTEND APP (La "Carrozzeria" - Expo/React Native)                      |
 ===============================================================================
 
 [📁] frontend/src/
  │
- ├─ [📁] screens/      
- │   ├─ [📁] Auth/         
- │   ├─ [📁] Main/         
- │   │   ├─ [📄] Schede.tsx        <-- Gestione piani di allenamento (Settimana 1)
- │   │   ├─ [📄] Dashboard.tsx     <-- Visual Stats & Telemetria dati
- │   │   └─ [📄] SocialPro.tsx     
- │   └─ [📁] Workout/      
- │       ├─ [📄] ActiveWorkout.tsx <-- Motore di Log (RPE, RIR, Drop-sets)
- │       └─ [📄] AICoach.tsx       <-- Pose Estimation camera view
+ ├─ [📁] api/              
+ │   └─ [📄] supabaseClient.ts <-- Unico punto di accesso al database.
  │
- ├─ [📁] components/ui/    <-- Grafici Custom & Glassmorphism
- └─ [📁] store/             <-- Zustand (Stato globale dell'allenamento)
+ ├─ [📁] store/             <-- Zustand (Stato globale Login e Allenamento).
+ │
+ ├─ [📁] screens/      
+ │   ├─ [📁] Auth/         <-- Login, Signup, Reset Password.
+ │   ├─ [📁] Main/         <-- Dashboard, Schede, Profilo.
+ │   └─ [📁] Workout/      <-- Schermata Allenamento Attivo (Motore di Log).
+ │
+ └─ [📁] components/ui/    <-- Componenti Premium (Gradients, Charts).
 
 *******************************************************************************
-* NOTE: Focus su Performance e Precisione dei Dati.                           *
+* NOTE: Sviluppo ibrido. Dati diretti su Supabase, Calcoli su Backend AI.      *
 *******************************************************************************

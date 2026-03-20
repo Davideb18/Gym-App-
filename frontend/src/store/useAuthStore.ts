@@ -9,7 +9,9 @@ interface AuthState {
   setAuth: (session: Session | null) => void;
   signOut: () => Promise<void>;
   signIn: (email: string, password: string ) => Promise<{ error: any}>;
-  signUp: (email: string, password: string ) => Promise<{ error: any}>;
+  signUp: (email: string, password: string, name: string ) => Promise<{ error: any}>;
+  resetPassword: (email: string) => Promise<{ error: any }>; 
+  signInWithOAuth: (provider: 'google' | 'apple' | 'facebook') => Promise<{ error: any }>; 
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -33,10 +35,21 @@ export const useAuthStore = create<AuthState>((set) => ({
   signIn: async (email, password) => {
     const { data, error } = await authService.signIn( email, password );
     return {error};
-},
+  },
 
-  signUp: async (email, password) => {
-    const { error } = await authService.signUp(email, password);
+  signUp: async (email, password, name) => {
+    const { error } = await authService.signUp(email, password, name);
     return { error };
-},
+  },
+
+  resetPassword: async (email: string) => {
+    const { error } = await authService.resetPassword(email);
+    return { error };
+  },
+
+  signInWithOAuth: async (provider: 'google' | 'apple' | 'facebook') => {
+    const { error } = await authService.signInWithOAuth(provider);
+    return { error };
+  },
+
 }));

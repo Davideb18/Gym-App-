@@ -1,9 +1,10 @@
 import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LoginScreen from './src/screens/Auth/LoginScreen';
-import './global.css'; // Se usi NativeWind 4 serve l'import del CSS globale
+import ForgotPasswordScreen from './src/screens/Auth/ForgotPasswordScreen';
+import ResetPasswordScreen from './src/screens/Auth/ResetPasswordScreen';
+import './global.css'; 
 import { useEffect, useState } from 'react';
-import { Session } from '@supabase/supabase-js';
 import { useAuthStore } from './src/store/useAuthStore';
 import { authService } from './src/api/authService';
 
@@ -15,23 +16,62 @@ import { Home, Layout, History, User } from 'lucide-react-native';
 
 const queryClient = new QueryClient();
 
+type AuthMode = 'login' | 'forgot-password' | 'reset-password';
+import * as Linking from 'expo-linking';
+
 export default function App() {
   const { session, setAuth } = useAuthStore();
   const [currentTab, setCurrentTab] = useState('Home');
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
 
   useEffect(() => {
+    // 1. Controlla la sessione iniziale
     authService.getSession().then(({ data: { session } }) => {
       setAuth(session);
     });
 
+    // 2. Listener per i cambiamenti di stato auth
     const {
       data: { subscription },
-    } = authService.onAuthStateChange((_event, session) => {
+    } = authService.onAuthStateChange((event, session) => {
       setAuth(session);
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthMode('reset-password');
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // 3. Gestisci Deep Links (per quando l'app è chiusa o in background)
+    const handleDeepLink = (url: string | null) => {
+      if (!url) return;
+      const parsed = Linking.parse(url);
+      // Se l'URL contiene hash con access_token e type=recovery, Supabase lo gestirà in onAuthStateChange
+      // Ma forziamo il cambio di UI per sicurezza
+      if (url.includes('type=recovery') || url.includes('reset-password')) {
+        setAuthMode('reset-password');
+      }
+    };
+
+    Linking.getInitialURL().then(handleDeepLink);
+    const linkingSubscription = Linking.addEventListener('url', (event) => handleDeepLink(event.url));
+
+    return () => {
+      subscription.unsubscribe();
+      linkingSubscription.remove();
+    };
   }, []);
+
+  const renderAuthScreen = () => {
+    switch (authMode) {
+      case 'login':
+        return <LoginScreen onOpenForgotPassword={() => setAuthMode('forgot-password')} />;
+      case 'forgot-password':
+        return <ForgotPasswordScreen onBack={() => setAuthMode('login')} />;
+      case 'reset-password':
+        return <ResetPasswordScreen onSuccess={() => setAuthMode('login')} />;
+      default:
+        return <LoginScreen onOpenForgotPassword={() => setAuthMode('forgot-password')} />;
+    }
+  };
 
   const renderScreen = () => {
     switch (currentTab) {
@@ -46,9 +86,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <View className="flex-1 bg-white">
-        {session ? (
+        {session && authMode !== 'reset-password' ? (
           <View className="flex-1">
             {renderScreen()}
+            {/* TAB BAR ... */}
 
             {/* CUSTOM PREMIUM TAB BAR */}
             <View className="absolute bottom-8 left-6 right-6 h-20 bg-black/90 rounded-[35px] flex-row items-center justify-around px-4 shadow-2xl border border-white/10">
@@ -74,7 +115,7 @@ export default function App() {
             </View>
           </View>
         ) : (
-          <LoginScreen />
+          renderAuthScreen()
         )}
       </View>
     </QueryClientProvider>

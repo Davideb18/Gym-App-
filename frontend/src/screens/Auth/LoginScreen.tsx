@@ -11,6 +11,9 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -31,8 +34,12 @@ const { width, height } = Dimensions.get('window');
 
 import { Mail, Lock, ChevronRight, User, Eye, EyeOff } from 'lucide-react-native';
 
-export default function LoginScreen() {
-  const { signIn, signUp } = useAuthStore();
+interface LoginScreenProps {
+  onOpenForgotPassword: () => void;
+}
+
+export default function LoginScreen({ onOpenForgotPassword }: LoginScreenProps) {
+  const { signIn, signUp, signInWithOAuth, resetPassword } = useAuthStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,45 +47,82 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  // Animated values for button
+  // Serve per animare il bottone
   const scale = useSharedValue(1);
   const buttonAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
+  // Serve per validare l'email
   const validateEmail = (email: string) => {
     return email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
   };
 
+  // Serve per fare il login con email e password
   const handleAuth = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
       Alert.alert('Errore', 'Inserisci email e password.');
       return;
     }
-
+    // Serve per validare l'email
     if (!validateEmail(trimmedEmail)) {
       Alert.alert('Errore', 'Inserisci un indirizzo email valido.');
       return;
     }
 
+    // Serve per validare il nome
     if (isSignUp && !name.trim()) {
       Alert.alert('Errore', 'Per favore, inserisci il tuo nome.');
       return;
     }
 
+    // Serve per caricare il bottone
     setLoading(true);
     const { error } = isSignUp 
-      ? await signUp(trimmedEmail, password) 
+      ? await signUp(trimmedEmail, password, name) 
       : await signIn(trimmedEmail, password);
 
     if (error) {
       Alert.alert('Errore', error.message);
+    } else if (isSignUp) {
+      Alert.alert(
+        'Successo!', 
+        'Registrazione completata. Controlla la tua email per confermare l\'account prima di accedere.'
+      );
+    }
+    setLoading(false);
+  };
+  
+  // Serve per resettare la password
+  const handleResetPassword = async () => {
+    if(!email.trim()) {
+      Alert.alert('Errore', 'Inserisci la tua email per resettare la password.');
+    return;
+    }
+    setLoading(true);
+    const { error } = await resetPassword(email.trim());
+    if (error) {
+      Alert.alert('Errore', error.message);
+    } else {
+      Alert.alert('Email inviata', 'Controlla la tua posta per resettare la password.');
     }
     setLoading(false);
   };
 
+  // Serve per fare il login con i social
+  const handleSocialLogin = async (provider: 'google' | 'apple' | 'facebook') => {
+  setLoading(true);
+  const { error } = await signInWithOAuth(provider);
+  if (error) {
+    Alert.alert('Errore', error.message);
+  }
+  // Se non c'è errore, Supabase aprirà il browser per te
+  setLoading(false);
+};
+
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View className="flex-1">
       <StatusBar style="dark" />
 
@@ -93,67 +137,27 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 pt-20 px-6 w-full"
       >
-        {/* 2. LOGO E TITOLO ESTESO */}
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+        >
         <Animated.View 
           entering={FadeInDown.delay(200).duration(1000).springify()}
           className="items-center mb-8 w-full"
         >
-          {/* LOGO: "THE ||-|| LAB" */}
-          <View className="items-center">
-            <View className="flex-row items-center justify-center z-10" style={{ marginBottom: -10 }}>
-              
-              {/* Custom 'T' built with precision pixel-perfect absolute views */}
-              <View style={{ width: 26, height: 35, marginRight: 4, marginBottom: 2 }}>
-                <View style={{ position: 'absolute', top: 0, left: 0, width: 26, height: 6, backgroundColor: '#fff' }} />
-                <View style={{ position: 'absolute', top: 6, bottom: 0, left: 10, width: 6, backgroundColor: '#fff' }} />
-              </View>
-
-              {/* Custom 'H' built with precision pixel-perfect absolute views */}
-              <View style={{ width: 26, height: 35, marginRight: 4, marginBottom: 2 }}>
-                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 6, backgroundColor: '#fff' }} />
-                <View style={{ position: 'absolute', top: 14.5, left: 6, width: 14, height: 6, backgroundColor: '#fff' }} />
-                <View style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 6, backgroundColor: '#fff' }} />
-              </View>
-              
-              {/* Custom 'E' + Barbell built with precision pixel-perfect absolute views */}
-              <View style={{ width: 59, height: 35, marginBottom: 2 }}>
-                {/* Vertical bar of the E */}
-                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 6, backgroundColor: '#fff' }} />
-
-                {/* Top bar (Width: 20 -> left 6) */}
-                <View style={{ position: 'absolute', top: 0, left: 6, width: 20, height: 6, backgroundColor: '#fff' }} />
-                
-                {/* Middle bar -> Width 26 (Crea il manico corto, avvicina i dischi) */}
-                <View style={{ position: 'absolute', top: 14.5, left: 6, width: 26, height: 6, backgroundColor: '#fff' }} />
-                
-                {/* Plate 1: Tall as the E (height: 35). left = 6+26+2 gap = 34 */}
-                <View style={{ position: 'absolute', top: 0, bottom: 0, left: 34, width: 5, backgroundColor: '#fff', borderRadius: 1 }} />
-                
-                {/* Plate 2: Medium (height: 29). left = 34+5+2 gap = 41 */}
-                <View style={{ position: 'absolute', top: 3, left: 41, width: 5, height: 29, backgroundColor: '#fff', borderRadius: 1 }} />
-                
-                {/* Plate 3: Shortest (height: 23). left = 41+5+2 gap = 48 */}
-                <View style={{ position: 'absolute', top: 6, left: 48, width: 5, height: 23, backgroundColor: '#fff', borderRadius: 1 }} />
-                
-                {/* End Cap. left = 48+5+2 gap = 55 */}
-                <View style={{ position: 'absolute', top: 14.5, left: 55, width: 4, height: 6, backgroundColor: '#fff', borderRadius: 1 }} />
-
-                {/* Bottom bar (Width: 20 -> left 6) */}
-                <View style={{ position: 'absolute', bottom: 0, left: 6, width: 20, height: 6, backgroundColor: '#fff' }} />
-              </View>
-            </View>
-            
-            {/* LAB TEXT MANUALLY KERNED */}
-            <View className="flex-row items-center justify-center z-1">
-              <Text style={{ color: '#fff', fontSize: 72, fontWeight: 'bold', includeFontPadding: false }}>L</Text>
-              <Text style={{ color: '#fff', fontSize: 72, fontWeight: 'bold', includeFontPadding: false, marginLeft: 0, marginRight: -2 }}>A</Text>
-              <Text style={{ color: '#fff', fontSize: 72, fontWeight: 'bold', includeFontPadding: false }}>B</Text>
-            </View>
-          </View>
+          <Image 
+            source={require('../../../assets/the_lab_logo.png')} 
+            style={{ width: 220, height: 200, marginBottom: -40 }}
+            resizeMode="contain"
+          />
           
           {/* Welcome Back Titles */}
-          <Text className="text-[34px] font-bold text-[#111111] mt-3 mb-1 text-center tracking-tight">Welcome Back</Text>
-          <Text className="text-[16px] font-medium text-[#111111]/70 text-center">Sign in to continue to The Lab</Text>
+          <Text className="text-[34px] font-bold text-[#111111] mt-0 mb-1 text-center tracking-tight">
+            {isSignUp ? 'Join The Lab' : 'Welcome Back'}
+          </Text>
+          <Text className="text-[16px] font-medium text-[#111111]/70 text-center">
+            {isSignUp ? 'Create your account to get started' : 'Sign in to continue to The Lab'}
+          </Text>
         </Animated.View>
 
         {/* 3. LOGIN/SIGNUP FORM */}
@@ -202,7 +206,14 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
               />
-              <TouchableOpacity onPress={() => Alert.alert('Recovery', 'Forgot Password Flow')}>
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="pr-2">
+                {showPassword ? (
+                  <EyeOff size={20} color="#1c1c1c" strokeWidth={2} />
+                ) : (
+                  <Eye size={20} color="#1c1c1c" strokeWidth={2} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onOpenForgotPassword}>
                 <Text className="text-[#1c1c1c] text-[13px] font-[800]">Forgot Password?</Text>
               </TouchableOpacity>
             </View>
@@ -243,7 +254,7 @@ export default function LoginScreen() {
             <View className="gap-y-3">
               <TouchableOpacity
                 className="bg-white border border-black/10 py-4 rounded-full flex-row items-center justify-center shadow-sm"
-                onPress={() => Alert.alert('Social', 'Google Auth')}
+                onPress={() => handleSocialLogin('google')}
               >
                 <View className="absolute left-6 w-8 items-center justify-center">
                   <Image source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} style={{ width: 20, height: 20 }} />
@@ -253,7 +264,7 @@ export default function LoginScreen() {
               
               <TouchableOpacity
                 className="bg-black py-4 rounded-full flex-row items-center justify-center shadow-sm"
-                onPress={() => Alert.alert('Social', 'Apple Auth')}
+                onPress={() => handleSocialLogin('apple')}
               >
                 <View className="absolute left-6 w-8 items-center justify-center">
                   <Text className="text-white font-[900] text-[22px] pb-[3px]"></Text>
@@ -263,7 +274,7 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 className="bg-[#1877F2] py-4 rounded-full flex-row items-center justify-center shadow-sm"
-                onPress={() => Alert.alert('Social', 'Facebook Auth')}
+                onPress={() => handleSocialLogin('facebook')}
               >
                 <View className="absolute left-6 w-8 items-center justify-center">
                   <Text className="text-white font-[900] text-[22px]">f</Text>
@@ -302,7 +313,9 @@ export default function LoginScreen() {
 
           </View>
         </Animated.View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
+    </TouchableWithoutFeedback>
   );
 }

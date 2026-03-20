@@ -4,9 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { User, Settings, TrendingUp, Award, BarChart3, ChevronRight } from 'lucide-react-native';
 
+import { useAuthStore } from '../../store/useAuthStore';
+
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
+  const { signOut } = useAuthStore();
+
   return (
     <View className="flex-1">
       <StatusBar style="dark" />
@@ -21,7 +25,10 @@ export default function ProfileScreen() {
                 <Text className="text-white text-xl font-black italic">LAB</Text>
               </View>
             </View>
-            <TouchableOpacity className="bg-black p-3 rounded-2xl">
+            <TouchableOpacity 
+              className="bg-black p-3 rounded-2xl"
+              onPress={() => signOut()}
+            >
               <Settings size={20} color="white" />
             </TouchableOpacity>
           </View>
