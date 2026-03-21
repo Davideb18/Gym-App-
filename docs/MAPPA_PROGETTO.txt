@@ -3,53 +3,69 @@
 *                                 THE LAB PRO                                 *
 *******************************************************************************
 
-Questa mappa riflette l'architettura HI-TECH "Direct Supabase".
+Questa mappa riflette l'architettura definitiva, scalabile e ottimizzata.
 
 ===============================================================================
-| 1. DATABASE & AUTH (Supabase Cloud - Il Cuore Pulsante)                    |
+| 1. STRUTTURA DEL REPOSITORY (Monorepo)                                      |
 ===============================================================================
 
-[☁️] Supabase Project: `the-lab-pro`
- │
- ├─ [🔐] Auth: Gestione utenti, Email, Google Login, Apple Login.
- │
- ├─ [🗄️] Database (PostgreSQL):
- │   ├─ [📊] profiles: Dati utente sincronizzati automaticamente dall'Auth.
- │   ├─ [🏋️] exercises: Libreria globale di tutti gli esercizi.
- │   ├─ [📝] workouts: Sessioni di allenamento con volumi e record.
- │   └─ [🔢] sets: I singoli dati tecnici (Reps, Kg, RPE, RIR).
- │
- └─ [🛡️] RLS Policies: Regole di sicurezza per impedire accessi non autorizzati.
+/
+├─ esercizi_base_musclewiki.sql   <-- Database Seed (Esercizi base + Video MP4 pronti per l'uso)
+├─ package.json                   <-- Root package.json (se presente)
+├─ docs/                          <-- Documentazione tecnica e design
+│   ├─ MAPPA_PROGETTO.txt         <-- Questo file
+│   ├─ AGGIORNAMENTO_SQUADRA.txt  <-- Logica e architettura per i dev aggiunti al team
+│   └─ SUPABASE_SECURITY_FINAL.sql<-- Regole di sicurezza RLS Database e configurazione SQL
+│
+├─ shared/                        <-- Codice condiviso Frontend/Backend
+│   └─ types.ts                   <-- Definizioni TypeScript centralizzate
+│
+├─ backend/                       <-- Servizi Node.js / Integrazioni Esterne / AI 
+│   ├─ .env                       <-- Variabili SEGRETE Backend (Stringa di connessione DB diretta)
+│   ├─ src/
+│   │   └─ index.ts               <-- Core logico e server di supporto in futuro
+│   └─ package.json               <-- Dipendenze server
+│
+└─ frontend/                      <-- App Mobile e Web (React Native / Expo / Nativewind)
+    ├─ .env                       <-- Variabili PUBBLICHE (EXPO_PUBLIC_)
+    ├─ app.json                   <-- Configurazione costruttore Expo
+    ├─ tailwind.config.js         <-- Sistema di stili CSS (Tailwind 3.4)
+    ├─ src/
+    │   ├─ api/                   <-- Servizi di fetching Data (Design Pattern Service)
+    │   │   ├─ supabaseClient.ts  <-- Setup e Config Supabase + Storage Sicuro su Nativo
+    │   │   ├─ authService.ts     <-- Metodi Accesso, Registrazione, OAuth
+    │   │   ├─ exerciseService.ts <-- API catalogo esercizi (con filtri e limiti Premium)
+    │   │   └─ workoutService.ts  <-- API CRUD creazione Schede, Sessioni, Tecniche (Cluster, Dropset)
+    │   │
+    │   ├─ store/                 <-- Zustand (State Manager Globale)
+    │   │   └─ useAuthStore.ts    <-- Gestione Utente e Sessione
+    │   │
+    │   ├─ screens/               <-- Pagine Navigazione UI
+    │   │   ├─ Auth/              <-- Login, Registrazione, Recover Password
+    │   │   └─ Main/              <-- Dashboard(Home), Schede(Workout Library), History, Profilo
+    │   │
+    │   ├─ components/            <-- Componenti React riutilizzabili (Modal, Input, Bottoni)
+    │   └─ hooks/                 <-- Hooks React Custom
+    └─ package.json               <-- Dipendenze app client
 
 ===============================================================================
-| 2. BACKEND AI (Il "Cervello" - Node.js App)                                  |
+| 2. DECISIONI ARCHITETTURALI & LOGICHE FONDAMENTALI                          |
 ===============================================================================
 
-[📁] backend/src/
- │
- ├─ [📄] index.ts          <-- Punto di ingresso (Porta 3001).
- │
- ├─ [📁] ai/               <-- Logica per Pose Estimation & AI Coach. (In arrivo)
- └─ [📁] analytics/        <-- Calcoli pesanti per grafici pro e volumi. (In arrivo)
+[A] DOPPIO FILE `.env` (Frontend vs Backend)
+- PERCHÉ SONO SEPARATI: Il progetto gestisce due ambienti di sicurezza diversi.
+  Il `.env` del frontend contiene chiavi pubbliche (`EXPO_PUBLIC_SUPABASE_ANON_KEY`) e DEVE poter
+  essere compilato nell'APK o nell'IPA da distribuire.
+  Il `.env` del backend contiene URL di bypass admin e chiavi `SERVICE_ROLE` o secret.
+  Unire i due file porterebbe al rischio altissimo di esportare chiavi di amministrazione nell'app client degli utenti.
+  
+[B] ARCHITETTURA SERVERLESS (Supabase BaaS)
+- Abbiamo eliminato il file "client.ts" che puntava a localhost:3001. Il fetching di dati
+  non passa più da un API gateway custom express perché Supabase ci fornisce già un'interfaccia 
+  GraphQL diretta estremamente preformante (in `frontend/src/api`).
+  Il server (`backend`) servirà unicamente per operazioni pesanti off-load (Script di analisi, ML, webhooks).
 
-===============================================================================
-| 3. FRONTEND APP (La "Carrozzeria" - Expo/React Native)                      |
-===============================================================================
-
-[📁] frontend/src/
- │
- ├─ [📁] api/              
- │   └─ [📄] supabaseClient.ts <-- Unico punto di accesso al database.
- │
- ├─ [📁] store/             <-- Zustand (Stato globale Login e Allenamento).
- │
- ├─ [📁] screens/      
- │   ├─ [📁] Auth/         <-- Login, Signup, Reset Password.
- │   ├─ [📁] Main/         <-- Dashboard, Schede, Profilo.
- │   └─ [📁] Workout/      <-- Schermata Allenamento Attivo (Motore di Log).
- │
- └─ [📁] components/ui/    <-- Componenti Premium (Gradients, Charts).
-
-*******************************************************************************
-* NOTE: Sviluppo ibrido. Dati diretti su Supabase, Calcoli su Backend AI.      *
-*******************************************************************************
+[C] TIPI CONDIVISI `shared/types.ts`
+- Le interfacce (Es. `Exercise`, `WorkoutTemplate`, `PlannedSet`) si trovano nella root `/shared`
+  poiché sia il DB e l'interfaccia UI, che i futuri calcoli backend, devono usare la medesima modellazione dati
+  per evitare bug di desincronizzazione.

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,50 +6,66 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  Modal,
+  TextInput
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { Plus, Dumbbell, History, Users, Layout, ChevronRight } from 'lucide-react-native';
+import { Plus, Dumbbell, History, Users, Layout, ChevronRight, X, Search, Lock } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../api/supabaseClient';
 import { useAuthStore } from '../../store/useAuthStore';
+import { ExerciseService } from '../../api/exerciseService'; // Importiamo il nostro nuovo servizio!
+import ExerciseWikiModal from '../../components/exercises/ExerciseWikiModal';
 
 export default function SchedeScreen() {
   const { session } = useAuthStore();
+  
+  // -- STATI PER IL POPUP (MODAL) WIKI --
+  const [isWikiOpen, setIsWikiOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch templates from Supabase
-  const { data: templates, isLoading } = useQuery({
+  // Per finta diciamo che non è premium per testare il lucchetto (Cambieremo con useAuthStore poi)
+  const isPremium = false; 
+
+  // -- FETCH TEMPLATES (Le tue schede) --
+  const { data: templates, isLoading: isLoadingTemplates } = useQuery({
     queryKey: ['templates'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('workouts')
-        .select('*');
-      
+      const { data, error } = await supabase.from('workout_templates').select('*');
       if (error) throw error;
       return data;
     },
     enabled: !!session?.access_token,
   });
 
+  // -- FETCH EXERCISES (Il Catalogo) --
+  const { data: exercises, isLoading: isLoadingExercises } = useQuery({
+    queryKey: ['exercises', isPremium],
+    queryFn: () => ExerciseService.getExercises(isPremium),
+    enabled: isWikiOpen, // Si attiva SOLO quando apri il popup! Per risparmiare giga/chiamate.
+  });
+
+  // Filtriamo gli esercizi in base alla barra di ricerca
+  const filteredExercises = exercises?.filter(ex => 
+    ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    ex.target_muscle?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <View className="flex-1">
       <StatusBar style="dark" />
       
-      {/* 1. PREMIUM GRAY-WHITE-GRAY GRADIENT BACKGROUND */}
-      <LinearGradient
-        colors={['#D1D5DB', '#FFFFFF', '#D1D5DB']}
-        className="absolute inset-0"
-      />
+      {/* BACKGROUND */}
+      <LinearGradient colors={['#D1D5DB', '#FFFFFF', '#D1D5DB']} className="absolute inset-0" />
 
       <SafeAreaView className="flex-1">
         <ScrollView className="px-6 pt-10">
-          {/* 2. HEADER - MATCHING LOGIN LOGO */}
+          {/* HEADER */}
           <View className="flex-row justify-between items-end mb-12">
             <View>
               <View className="flex-row items-center">
-                <Text className="text-black text-4xl font-black tracking-tighter">
-                  THE
-                </Text>
+                <Text className="text-black text-4xl font-black tracking-tighter">THE</Text>
                 <View className="ml-1 bg-black px-1.5 py-0.5">
                   <Text className="text-white text-2xl font-black italic">LAB</Text>
                 </View>
@@ -58,15 +74,12 @@ export default function SchedeScreen() {
                 Workout Templates
               </Text>
             </View>
-            <TouchableOpacity 
-              className="bg-black p-3.5 rounded-2xl shadow-xl"
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity className="bg-black p-3.5 rounded-2xl shadow-xl" activeOpacity={0.8}>
               <Plus size={24} color="white" strokeWidth={3} />
             </TouchableOpacity>
           </View>
 
-          {/* 3. QUICK ACTIONS - MINIMALIST */}
+          {/* QUICK ACTIONS */}
           <View className="flex-row justify-between mb-12 gap-x-4">
             <TouchableOpacity className="items-center bg-white/60 p-4 rounded-3xl border border-black/5 flex-1 shadow-sm">
               <View className="bg-black/5 p-2 rounded-xl mb-2">
@@ -82,7 +95,12 @@ export default function SchedeScreen() {
               <Text className="text-black text-[10px] font-black uppercase tracking-widest">AI Gen</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity className="items-center bg-white/60 p-4 rounded-3xl border border-black/5 flex-1 shadow-sm">
+            {/* BOTTONE WIKI: Apre il Modal */}
+            <TouchableOpacity 
+              onPress={() => setIsWikiOpen(true)}
+              className="items-center bg-white/60 p-4 rounded-3xl border border-black/5 flex-1 shadow-sm"
+              activeOpacity={0.7}
+            >
               <View className="bg-black/5 p-2 rounded-xl mb-2">
                 <Users size={18} color="black" />
               </View>
@@ -90,29 +108,22 @@ export default function SchedeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 4. TEMPLATES LIST */}
+          {/* TEMPLATES LIST */}
           <View>
             <Text className="text-black/30 text-[10px] font-black uppercase tracking-[4px] mb-6 ml-1">
               My Routines
             </Text>
 
-            {isLoading ? (
+            {isLoadingTemplates ? (
               <ActivityIndicator color="#000" />
             ) : templates && templates.length > 0 ? (
               templates.map((template: any) => (
-                <TouchableOpacity 
-                  key={template.id}
-                  className="bg-white/70 border border-black/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-lg shadow-black/5"
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity key={template.id} className="bg-white/70 border border-black/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-lg shadow-black/5" activeOpacity={0.7}>
                   <View className="bg-black p-3.5 rounded-2xl mr-5 shadow-md">
                     <Dumbbell size={22} color="white" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-black font-black text-xl tracking-tight">{template.name}</Text>
-                    <Text className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-0.5">
-                      {template.exercises?.length || 0} Exercises
-                    </Text>
                   </View>
                   <View className="bg-black/5 p-2 rounded-full">
                     <ChevronRight size={18} color="#999" strokeWidth={3} />
@@ -130,10 +141,16 @@ export default function SchedeScreen() {
               </View>
             )}
           </View>
-
           <View className="h-24" />
         </ScrollView>
       </SafeAreaView>
+
+       <ExerciseWikiModal 
+        visible={isWikiOpen} 
+        onClose={() => setIsWikiOpen(false)} 
+        isPremium={false} // Cambieremo in base all'utente vero in futuro
+      />
+
     </View>
   );
 }

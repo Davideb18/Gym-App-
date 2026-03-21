@@ -1,6 +1,7 @@
 import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LoginScreen from './src/screens/Auth/LoginScreen';
+import SignupScreen from './src/screens/Auth/SignupScreen';
 import ForgotPasswordScreen from './src/screens/Auth/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/screens/Auth/ResetPasswordScreen';
 import './global.css'; 
@@ -16,7 +17,7 @@ import { Home, Layout, History, User } from 'lucide-react-native';
 
 const queryClient = new QueryClient();
 
-type AuthMode = 'login' | 'forgot-password' | 'reset-password';
+type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 import * as Linking from 'expo-linking';
 
 export default function App() {
@@ -63,13 +64,15 @@ export default function App() {
   const renderAuthScreen = () => {
     switch (authMode) {
       case 'login':
-        return <LoginScreen onOpenForgotPassword={() => setAuthMode('forgot-password')} />;
+        return <LoginScreen onOpenForgotPassword={() => setAuthMode('forgot-password')} onGoToSignUp={() => setAuthMode('signup')} />;
+      case 'signup':
+        return <SignupScreen onGoToLogin={() => setAuthMode('login')} />;
       case 'forgot-password':
         return <ForgotPasswordScreen onBack={() => setAuthMode('login')} />;
       case 'reset-password':
         return <ResetPasswordScreen onSuccess={() => setAuthMode('login')} />;
       default:
-        return <LoginScreen onOpenForgotPassword={() => setAuthMode('forgot-password')} />;
+        return <LoginScreen onOpenForgotPassword={() => setAuthMode('forgot-password')} onGoToSignUp={() => setAuthMode('signup')} />;
     }
   };
 
