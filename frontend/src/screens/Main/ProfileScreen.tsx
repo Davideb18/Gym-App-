@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { User, Settings, TrendingUp, Award, BarChart3, ChevronRight } from 'lucide-react-native';
 
 import { useAuthStore } from '../../store/useAuthStore';
 
-const { width } = Dimensions.get('window');
+
 
 export default function ProfileScreen() {
   const { signOut } = useAuthStore();
@@ -67,7 +68,7 @@ export default function ProfileScreen() {
           <Text className="text-black/30 text-[10px] font-black uppercase tracking-[4px] mb-6 px-1">Personal Protocols</Text>
           <View className="gap-y-4">
              {['Bench Press', 'Squat', 'Deadlift'].map((exercise, i) => (
-                <TouchableOpacity key={i} className="bg-white/60 border border-black/5 rounded-[32px] p-6 flex-row items-center shadow-sm">
+                <TouchableOpacity key={exercise} className="bg-white/60 border border-black/5 rounded-[32px] p-6 flex-row items-center shadow-sm">
                    <View className="w-2 h-2 rounded-full bg-black mr-4" />
                    <View className="flex-1">
                       <Text className="text-black font-black text-lg tracking-tight">{exercise}</Text>

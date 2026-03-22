@@ -4,53 +4,41 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
-  ActivityIndicator,
-  Modal,
-  TextInput
+  ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { Plus, Dumbbell, History, Users, Layout, ChevronRight, X, Search, Lock } from 'lucide-react-native';
+import { Plus, Dumbbell, History, Users, Layout, ChevronRight } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../api/supabaseClient';
 import { useAuthStore } from '../../store/useAuthStore';
-import { ExerciseService } from '../../api/exerciseService'; // Importiamo il nostro nuovo servizio!
-import ExerciseWikiModal from '../../components/exercises/ExerciseWikiModal';
+import ExerciseLibrary from '../../components/exercises/ExerciseLibrary';
+
+import { WorkoutTemplate } from '../../../../shared/types';
+
+type WorkoutTemplateRow = Pick<WorkoutTemplate, 'id' | 'name'>;
 
 export default function SchedeScreen() {
   const { session } = useAuthStore();
   
   // -- STATI PER IL POPUP (MODAL) WIKI --
   const [isWikiOpen, setIsWikiOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Per finta diciamo che non è premium per testare il lucchetto (Cambieremo con useAuthStore poi)
-  const isPremium = false; 
 
   // -- FETCH TEMPLATES (Le tue schede) --
-  const { data: templates, isLoading: isLoadingTemplates } = useQuery({
+  const { data: templates, isLoading: isLoadingTemplates } = useQuery<WorkoutTemplateRow[]>({
     queryKey: ['templates'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('workout_templates').select('*');
+      const { data, error } = await supabase
+        .from('workout_templates')
+        .select('id, name')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      return data;
+      return (data ?? []) as WorkoutTemplateRow[];
     },
     enabled: !!session?.access_token,
   });
-
-  // -- FETCH EXERCISES (Il Catalogo) --
-  const { data: exercises, isLoading: isLoadingExercises } = useQuery({
-    queryKey: ['exercises', isPremium],
-    queryFn: () => ExerciseService.getExercises(isPremium),
-    enabled: isWikiOpen, // Si attiva SOLO quando apri il popup! Per risparmiare giga/chiamate.
-  });
-
-  // Filtriamo gli esercizi in base alla barra di ricerca
-  const filteredExercises = exercises?.filter(ex => 
-    ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ex.target_muscle?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <View className="flex-1">
@@ -104,7 +92,7 @@ export default function SchedeScreen() {
               <View className="bg-black/5 p-2 rounded-xl mb-2">
                 <Users size={18} color="black" />
               </View>
-              <Text className="text-black text-[10px] font-black uppercase tracking-widest">Wiki</Text>
+              <Text className="text-black text-[10px] font-black uppercase tracking-widest">Exercise</Text>
             </TouchableOpacity>
           </View>
 
@@ -117,7 +105,7 @@ export default function SchedeScreen() {
             {isLoadingTemplates ? (
               <ActivityIndicator color="#000" />
             ) : templates && templates.length > 0 ? (
-              templates.map((template: any) => (
+              templates.map((template) => (
                 <TouchableOpacity key={template.id} className="bg-white/70 border border-black/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-lg shadow-black/5" activeOpacity={0.7}>
                   <View className="bg-black p-3.5 rounded-2xl mr-5 shadow-md">
                     <Dumbbell size={22} color="white" />
@@ -145,10 +133,9 @@ export default function SchedeScreen() {
         </ScrollView>
       </SafeAreaView>
 
-       <ExerciseWikiModal 
+       <ExerciseLibrary 
         visible={isWikiOpen} 
-        onClose={() => setIsWikiOpen(false)} 
-        isPremium={false} // Cambieremo in base all'utente vero in futuro
+        onClose={() => setIsWikiOpen(false)}
       />
 
     </View>

@@ -6,15 +6,26 @@ Questo file funge da "promemoria" continuo per lo sviluppo futuro.
 
 ## 1. 🏋️ DATABASE ESERCIZI (Lancio App & Feat. Premium)
 Attualmente usiamo un DB provvisorio (12 esercizi perfetti per testare la UI).
-- [ ] **Azione per la pubblicazione finale:** Prima di lanciare l'app sui dispositivi, attivare il piano "TESTING ($5/mo)" su MuscleWiki.
-- [ ] Eseguire uno script `Node.js` dal nostro backend per fare il fetch ufficiale di tutti i 500+ esercizi.
-- [ ] Subito dopo l'importazione massiva su Supabase, chiudere/disdire l'abbonamento MuscleWiki.
+- [ ] **Azione per la pubblicazione finale:** Attivare il piano "TESTING ($5/mo)" su MuscleWiki solo per la finestra di import.
+- [ ] Eseguire uno script `Node.js` dal backend per fare il fetch ufficiale dei 500+ esercizi e salvarli su Supabase.
+- [ ] **TRADUZIONI AI (i18n):** Scrivere uno script automatico (es. con DeepL o OpenAI) per tradurre tutte le descrizioni e i nomi degli esercizi in Italiano e Spagnolo, salvando i dati su Supabase senza farlo a mano.
+- [ ] **Dopo l'import completo:** chiudere/disdire l'abbonamento MuscleWiki (non deve restare attivo in modo permanente).
 - [ ] **IMPORTANTE - DATI AGGIUNTIVI:** Quando faremo il fetch col piano Testing, dovremo estrarre anche i parametri Premium (riportati dalla loro doc) e mapparli nelle tabelle Supabase: 
   - `difficulty` (novice, intermediate, advanced)
   - `mechanic` (isolation, compound)
   - `force` (push, pull, static)
   - Inserirli in `shared/types.ts` e aggiungere le colonne tramite ALTER TABLE nel database.
 - [ ] **Video Unbranded:** Assicurarsi che lo script peschi dall'endpoint `/stream/videos/unbranded/{filename}` invece che branded, per scaricare video fluidi e SENZA loghi di terzi.
+- [ ] **Fix UI immagini ExerciseLibrary (nota tecnica):** ora in app vediamo avatar fallback perché le URL dirette `musclewiki.com/media/...` possono fallire (Cloudflare/hotlink). Durante l'import definitivo dobbiamo salvare le immagini in `Supabase Storage` (bucket pubblico tipo `exercise-assets`) e scrivere in `exercises.image_url` il link del bucket, così a sinistra compaiono le preview reali.
+
+### ✅ Approccio consigliato (completo, economico, sicuro, low-sbatti)
+- [ ] **Fase 1 - Import una tantum:** tenere attivo MuscleWiki solo il tempo necessario per importare e normalizzare i dati su Supabase.
+- [ ] **Fase 2 - Testo sempre su DB:** conservare in `public.exercises` tutti i campi testuali/tecnici (nome, muscolo, difficoltà, istruzioni, equipment, ecc).
+- [ ] **Fase 3 - Immagini locali:** scaricare immagini durante import e caricarle su `Supabase Storage` (`exercise-assets/images/...`), poi usare solo URL Supabase nel frontend.
+- [ ] **Fase 4 - Video economici:** inizialmente NON copiare tutti i video su Storage (costo alto). Salvare `video_url` esterno o usare proxy leggero.
+- [ ] **Fase 5 - Sicurezza chiavi:** `SERVICE_ROLE` solo backend/edge function; frontend solo con `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- [ ] **Fase 6 - Policy/RLS:** mantenere policy minime: lettura pubblica per libreria esercizi, scrittura solo da backend con service role.
+- [ ] **Fase 7 - Ottimizzazione costi futura:** copiare su Storage solo i video più usati (cache on-demand), basandosi su utilizzo reale.
 
 ---
 

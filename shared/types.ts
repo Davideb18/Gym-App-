@@ -10,6 +10,8 @@ export interface Exercise {
   is_custom?: boolean;
   profile_id?: string | null;
   created_at?: string;
+  difficulty?: 'novice' | 'intermediate' | 'advanced' | null;
+  category?: string | null;
 }
 
 export interface WorkoutTemplate {

@@ -1,0 +1,17 @@
+{
+  "profile": {
+    "title": "Mi Perfil",
+    "settings": "Ajustes",
+    "change_language": "Cambiar Idioma"
+  },
+  "difficulty": {
+    "novice": "Principiante",
+    "intermediate": "Intermedio",
+    "advanced": "Avanzado"
+  },
+  "exercises": {
+    "title": "Ejercicios",
+    "search_placeholder": "Buscar un ejercicio...",
+    "difficulty_label": "Dificultad"
+  }
+}

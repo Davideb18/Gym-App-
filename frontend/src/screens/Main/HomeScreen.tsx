@@ -1,20 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { Flame, Trophy, Activity, ChevronRight, Quote, Zap } from 'lucide-react-native';
+import { Flame, Trophy, Activity, ChevronRight, Quote, Zap, Dumbbell } from 'lucide-react-native';
+
+// IMPORTIAMO IL NOSTRO NUOVO POPUP
+import ExerciseDetailModal from '../../components/exercises/ExerciseDetailModal';
+import ExerciseLibrary from '../../components/exercises/ExerciseLibrary'; // <-- Aggiunto
 
 export default function HomeScreen() {
   // Logic for Animal Level (Mockup for now)
   const animalLevel = "Silver Gorilla";
   const progressToNext = 75; // percentage
+  
+  // STATO PER CONTROLLARE SE IL MODAL DEL SINGOLO ESERCIZIO È APERTO
+  const [isExerciseDetailVisible, setIsExerciseDetailVisible] = useState(false);
+  
+  // STATO PER CONTROLLARE LA LIBRERIA ESERCIZI (NUOVA SCHERMATA/MODAL)
+  const [isLibraryVisible, setIsLibraryVisible] = useState(false);
   
   return (
     <View className="flex-1">
@@ -42,6 +52,37 @@ export default function HomeScreen() {
             <TouchableOpacity className="bg-black/5 p-3 rounded-full">
               <Activity size={20} color="black" />
             </TouchableOpacity>
+          </View>
+
+          {/* AREA DI TEST - BOTTONE PER APRIRE IL POPUP ESERCIZIO */}
+          <View className="mb-8">
+            <Text className="text-black font-black uppercase text-[10px] tracking-[4px] mb-4 px-1">
+              Tester Dev
+            </Text>
+            
+            <View className="gap-y-3">
+              <TouchableOpacity 
+                onPress={() => setIsExerciseDetailVisible(true)}
+                className="bg-black py-4 px-6 rounded-[24px] flex-row items-center shadow-lg"
+              >
+                <Dumbbell size={20} color="#FF4500" className="mr-3" />
+                <View>
+                  <Text className="text-white font-black">Testa Popup Esercizio</Text>
+                  <Text className="text-gray-400 text-xs mt-1">Guarda il nuovo design glassmorphism</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={() => setIsLibraryVisible(true)}
+                className="bg-white border border-gray-200 py-4 px-6 rounded-[24px] flex-row items-center shadow-sm"
+              >
+                <Activity size={20} color="#000" className="mr-3" />
+                <View>
+                  <Text className="text-black font-black">Testa Libreria Esercizi</Text>
+                  <Text className="text-gray-500 text-xs mt-1">Tabella con FlatList e Traduzioni</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* MOTIVATIONAL QUOTE CARD */}
@@ -136,6 +177,20 @@ export default function HomeScreen() {
           Start Training
         </Text>
       </TouchableOpacity>
+
+      {/* POPUP ESERCIZIO (Nascosto di default) */}
+      <ExerciseDetailModal 
+        visible={isExerciseDetailVisible} 
+        onClose={() => setIsExerciseDetailVisible(false)} 
+        exerciseName="Panca Piana Inclinata"
+        muscle="Petto Superiore"
+      />
+
+      {/* LIBRERIA ESERCIZI (Nascosta di default) */}
+      <ExerciseLibrary
+        visible={isLibraryVisible}
+        onClose={() => setIsLibraryVisible(false)}
+      />
 
     </View>
   );

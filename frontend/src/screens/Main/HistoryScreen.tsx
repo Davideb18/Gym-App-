@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react-native';
@@ -47,7 +48,7 @@ export default function HistoryScreen() {
           {/* SESSIONS LIST */}
           <View className="gap-y-4">
              {[1, 2, 3].map((i) => (
-               <View key={i} className="bg-white/60 border border-black/5 rounded-[32px] p-6 flex-row items-center shadow-sm">
+               <View key={`session-${i}`} className="bg-white/60 border border-black/5 rounded-[32px] p-6 flex-row items-center shadow-sm">
                   <View className="bg-black/5 p-4 rounded-2xl mr-5">
                     <Clock size={20} color="black" />
                   </View>

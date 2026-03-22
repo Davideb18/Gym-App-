@@ -1,13 +1,17 @@
-import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Linking from 'expo-linking';
+import { useEffect, useState } from 'react';
+
+import './src/locales/i18n'; // Inizializza le lingue
+import './global.css'; 
+import { useAuthStore } from './src/store/useAuthStore';
+import { authService } from './src/api/authService';
+
 import LoginScreen from './src/screens/Auth/LoginScreen';
 import SignupScreen from './src/screens/Auth/SignupScreen';
 import ForgotPasswordScreen from './src/screens/Auth/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/screens/Auth/ResetPasswordScreen';
-import './global.css'; 
-import { useEffect, useState } from 'react';
-import { useAuthStore } from './src/store/useAuthStore';
-import { authService } from './src/api/authService';
 
 import HomeScreen from './src/screens/Main/HomeScreen';
 import SchedeScreen from './src/screens/Main/SchedeScreen';
@@ -18,7 +22,6 @@ import { Home, Layout, History, User } from 'lucide-react-native';
 const queryClient = new QueryClient();
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
-import * as Linking from 'expo-linking';
 
 export default function App() {
   const { session, setAuth } = useAuthStore();
