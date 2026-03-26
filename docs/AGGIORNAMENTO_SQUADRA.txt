@@ -1,48 +1,12 @@
 *******************************************************************************
-*                      DOCUMENTO DI ALLINEAMENTO TECNICO                      *
-*                              Per il Team di Sviluppo                        *
+*                         DOCUMENTO STORICO DEPRECATO                         *
 *******************************************************************************
 
-Ciao! Se stai leggendo questo documento, significa che devi aggiornarti sulle ultime grosse modifiche architetturali del progetto THE LAB PRO. 
-Abbiamo fatto una sessione di REFACTORING pesante per snellire, pulire e rendere il progetto pronto per le prossime fasi (Gestione Schede, Statistiche e Analisi).
+Questo documento e mantenuto solo come storico.
 
-Ecco cosa è cambiato, cosa è stato cancellato e come funziona ora la logica:
+Fonti canoniche attuali:
+1. `docs/WORKOUT_MASTER_STATUS.md` per roadmap operativa, schema dati workout e priorita.
+2. `docs/MAPPA_PROGETTO.txt` per architettura e struttura repository.
 
--------------------------------------------------------------------------------
-1. PULIZIA DEI FILE INUTILI (Basta Caos)
--------------------------------------------------------------------------------
-COSA ABBIAMO CANCELLATO:
-- Tutti gli script intermedi in Python, TypeScript (.ts) e file .json presenti nelle cartelle `backend/scripts` che provavano ad estrarre database in modo sporco.
-- Obsoleti file `client.ts` dentro `frontend/src/api`: facevano vecchie chiamate HTTP a `localhost:3001`. Li abbiamo eliminati a favore di connessioni dirette e ottimizzate a Supabase.
-- Tutti i vecchi e parziali `.sql`. Esiste UN SOLO sql valido in root adesso!
-- Doppioni inconsistenti in cartelle estranee.
-
--------------------------------------------------------------------------------
-2. DATABASE E INSERIMENTO ESERCIZI
--------------------------------------------------------------------------------
-- Niente più script lenti e fail API: abbiamo consolidato l'importazione in **un unico file root** -> `esercizi_base_musclewiki.sql`.
-- Database popolato: questo SQL fa una tabula rasa (`DELETE FROM public.exercises;`) dei test sporchi e inietta un dataset puro con video reali mp4 e dati strutturati (es: Panca Piana, trazioni...). 
-- Se devi testare/mostrare l'app oggi, apri il SQL editor di Supabase e manda in 'Run' quel file. Hai i muscoli e i video già collegati per il building della UI.
-
--------------------------------------------------------------------------------
-3. I DUE FILE `.ENV` : IL MOTIVO TECNICO
--------------------------------------------------------------------------------
-Sembrava ci fossero .env duplicati, in realtà è una Best Practice necessaria.
-- `frontend/.env`: Contiene SOLO le chiavi PUBBLICHE (`EXPO_PUBLIC_SUPABASE_ANON_KEY`) necessarie al progetto Expo/React Native per inizializzare il client API. Se si rubano questa chiave gli RLS bloccheranno i leak.
-- `backend/.env`: Contiene le credenziali di root, la connessione `DATABASE_URL` e `DIRECT_URL`. NON PUÒ stare insieme al front per rischio sicurezza. 
-
--------------------------------------------------------------------------------
-4. ARCHITETTURA CLOUD (LOGICA DI COLLEGAMENTO)
--------------------------------------------------------------------------------
-- Frontend Fetching: Tutti i file in `frontend/src/api/...` (`exerciseService.ts`, `workoutService.ts`, etc.) si appoggiano ora esclusivamente a `supabaseClient.ts`.
-- Non c'è e non ci sarà alcun bisogno di un server Node.js intermediario per le CRUD classiche. "Supabase è il tuo server API".
-- Backend Futuro: Lasciamo in panchina la cartella `backend` per operazioni distaccate (cron jobs, elaborazione pose estimation, o pagamenti complessi Stripe in the future). C'è solo `index.ts` in attesa.
-
--------------------------------------------------------------------------------
-5. PER LE "SCHEDE", STATISTICHE E DATI COMUNI
--------------------------------------------------------------------------------
-- Per evitare bug tra chi scrive backend e chi compila l'app, centralizziamo la modellazione: `shared/types.ts`.
-- Ogni variabile Supabase corrisponde lì dentro. `WorkoutTemplate`, `Exercise`, `PlannedSet`, etc. In futuro, tutto lo sviluppo logico delle nuove features partirà sempre dalla definizione dentro la root `shared` e da un aggiornamento mirato del CRUD nel folder API frontend.
-
-Se hai dubbi, consulta: `docs/MAPPA_PROGETTO.txt` che ho aggiornato allo stato dell'arte attuale.
-Buon Coding!
+Nota:
+- Evitare nuovi aggiornamenti in questo file per non duplicare informazioni.

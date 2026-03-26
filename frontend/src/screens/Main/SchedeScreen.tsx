@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,31 +15,175 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../api/supabaseClient';
 import { useAuthStore } from '../../store/useAuthStore';
 import ExerciseLibrary from '../../components/exercises/ExerciseLibrary';
+import CreateRoutineModal from '../../components/schede/CreateRoutineModal';
 
 import { WorkoutTemplate } from '../../../../shared/types';
 
-type WorkoutTemplateRow = Pick<WorkoutTemplate, 'id' | 'name'>;
+type WorkoutTemplateRow = Pick<WorkoutTemplate, 'id' | 'name' | 'description' | 'created_at'>;
 
 export default function SchedeScreen() {
   const { session } = useAuthStore();
+  const userId = session?.user?.id;
+  const [isPremium, setIsPremium] = useState(false);
+  const [isLoadingPremium, setIsLoadingPremium] = useState(false);
   
   // -- STATI PER IL POPUP (MODAL) WIKI --
   const [isWikiOpen, setIsWikiOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+  const [createTemplateError, setCreateTemplateError] = useState<string | null>(null);
+
+  // Effetto per caricare lo stato premium dell'utente all'inizio e ogni volta che cambia l'userId
+  useEffect(() => {
+  let mounted = true;
+  // funzione per caricare lo stato premium dell'utente dal database, 
+  // gestendo stati di caricamento e errori
+  const loadPremiumStatus = async () => {
+    if (!userId) {
+      if (mounted) setIsPremium(false);
+      return;
+    }
+
+    try {
+      setIsLoadingPremium(true);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_premium')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        if (mounted) setIsPremium(false);
+        return;
+      }
+
+      // se tutto va bene, aggiorna lo stato isPremium con il valore ottenuto dal database
+      if (mounted) {
+        // !!data?.is_premium converte il valore in un booleano, assicurandosi che sia true o false
+        setIsPremium(!!data?.is_premium);
+      }
+    } catch {
+      if (mounted) setIsPremium(false);
+    } finally {
+      if (mounted) setIsLoadingPremium(false);
+    }
+  };
+
+    // chiama la funzione per caricare lo stato premium quando il componente viene montato o quando cambia l'userId
+    loadPremiumStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
+
+  // -- FUNZIONI PER IL MODAL DI CREAZIONE ROUTINE --
+  // Apre il modal di creazione routine, controllando prima se l'utente ha raggiunto il limite
+  const openCreateRoutineFlow = () => {
+    if (isLoadingPremium) return;
+
+    const templatesCount = templates?.length ?? 0;
+    const freeLimitReached = !isPremium && templatesCount >= 4;
+
+    if (freeLimitReached) {
+      Alert.alert(
+        'Limite raggiunto',
+        'Con il piano free puoi creare fino a 4 schede. Passa a Premium per schede illimitate.'
+      );
+      return;
+    }
+
+    setCreateTemplateError(null);
+    setIsCreateOpen(true);
+  };
+
+  // Chiude il modal di creazione routine, se non siamo in fase di creazione 
+  // (per evitare chiusure accidentali durante l'inserimento)
+  const closeCreateRoutineFlow = () => {
+    if (isCreatingTemplate) return;
+    setIsCreateOpen(false);
+  };
+
+  // Gestisce la creazione della routine, comunicando con Supabase e gestendo 
+  // stati di caricamento ed errori
+  const handleCreateRoutineSubmit = async (name: string, description?: string) => {
+    if (!userId) {
+      setCreateTemplateError('Utente non autenticato. Riprova il login.');
+      return;
+    }
+
+    // Controlla se l'utente ha raggiunto il limite di schede gratuite
+    const templatesCount = templates?.length ?? 0;
+    const freeLimitReached = !isPremium && templatesCount >= 4;
+    if (freeLimitReached) {
+      setCreateTemplateError(
+        'Limite schede raggiunto (4/4). Passa al piano Premium per crearne di più.'
+      );
+      return;
+    }
+
+    // Procediamo con la creazione della routine, mostrando un indicatore di caricamento 
+    // e gestendo eventuali errori
+    try {
+      setIsCreatingTemplate(true);
+      setCreateTemplateError(null);
+
+      const { error } = await supabase
+        .from('workout_templates')
+        .insert([
+          {
+            profile_id: userId,
+            name,
+            description: description ?? null,
+          },
+        ]);
+
+      if (error) {
+        throw error;
+      }
+
+      // Se la creazione ha successo, chiudiamo il modal e ricarichiamo la lista delle routine
+      setIsCreateOpen(false);
+      await refetchTemplates();
+    } catch (err: any) {
+      setCreateTemplateError(err?.message ?? 'Errore durante la creazione della routine.');
+    } finally {
+      setIsCreatingTemplate(false);
+    }
+  };
+
+  // Funzione di placeholder per l'apertura della routine selezionata
+  const openRoutine = (templateId: string, templateName: string) => {
+    Alert.alert(
+      'Routine selezionata',
+      `${templateName}\nID: ${templateId}\n\nTODO: aprire dettaglio routine / start workout`
+    );
+  };
 
   // -- FETCH TEMPLATES (Le tue schede) --
-  const { data: templates, isLoading: isLoadingTemplates } = useQuery<WorkoutTemplateRow[]>({
-    queryKey: ['templates'],
+  const { 
+    data: templates, 
+    isLoading: isLoadingTemplates,
+    isError: isTemplatesError,
+    refetch: refetchTemplates
+  } = useQuery<WorkoutTemplateRow[]>({
+    queryKey: ['templates', userId], // La query dipende dall'userId
     queryFn: async () => {
+      if(!userId) return []; // Se non abbiamo userId, ritorniamo un array vuoto
+
       const { data, error } = await supabase
         .from('workout_templates')
-        .select('id, name')
-        .order('created_at', { ascending: false });
+        .select('id, name, description, created_at')
+        .order('created_at', { ascending: false })
+        .eq('profile_id', userId); // Filtra per l'utente loggato
 
       if (error) throw error;
       return (data ?? []) as WorkoutTemplateRow[];
     },
-    enabled: !!session?.access_token,
+    enabled: !!userId, // Esegui solo se abbiamo l'userId
   });
+
 
   return (
     <View className="flex-1">
@@ -62,14 +207,22 @@ export default function SchedeScreen() {
                 Workout Templates
               </Text>
             </View>
-            <TouchableOpacity className="bg-black p-3.5 rounded-2xl shadow-xl" activeOpacity={0.8}>
+            <TouchableOpacity 
+              onPress={openCreateRoutineFlow}
+              className="bg-black p-3.5 rounded-2xl shadow-xl" 
+              activeOpacity={0.8}
+            >
               <Plus size={24} color="white" strokeWidth={3} />
             </TouchableOpacity>
           </View>
 
           {/* QUICK ACTIONS */}
           <View className="flex-row justify-between mb-12 gap-x-4">
-            <TouchableOpacity className="items-center bg-white/60 p-4 rounded-3xl border border-black/5 flex-1 shadow-sm">
+            <TouchableOpacity               
+                onPress={openCreateRoutineFlow}
+                className="items-center bg-white/60 p-4 rounded-3xl border border-black/5 flex-1 shadow-sm"
+                activeOpacity={0.7}
+            >
               <View className="bg-black/5 p-2 rounded-xl mb-2">
                 <Dumbbell size={18} color="black" />
               </View>
@@ -104,9 +257,28 @@ export default function SchedeScreen() {
 
             {isLoadingTemplates ? (
               <ActivityIndicator color="#000" />
+            ) : isTemplatesError ? (
+              <View className="bg-white/60 border border-red-200 rounded-[32px] p-6 mb-5 items-center">
+                  <Text className="text-red-600 font-bold text-center mb-4">
+                    Errore nel caricamento delle routine
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={() => refetchTemplates()}
+                    className="bg-black px-4 py-2 rounded-xl"
+                    activeOpacity={0.8}
+                  >
+                    <Text className="text-white font-bold">Riprova</Text>
+                  </TouchableOpacity>
+                </View>
             ) : templates && templates.length > 0 ? (
               templates.map((template) => (
-                <TouchableOpacity key={template.id} className="bg-white/70 border border-black/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-lg shadow-black/5" activeOpacity={0.7}>
+                <TouchableOpacity 
+                  key={template.id} 
+                  className="bg-white/70 border border-black/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-lg shadow-black/5" 
+                  activeOpacity={0.7}
+                  onPress={() => openRoutine(template.id, template.name)}
+                >
                   <View className="bg-black p-3.5 rounded-2xl mr-5 shadow-md">
                     <Dumbbell size={22} color="white" />
                   </View>
@@ -119,23 +291,38 @@ export default function SchedeScreen() {
                 </TouchableOpacity>
               ))
             ) : (
-              <View className="bg-white/40 border border-dashed border-black/20 rounded-[40px] p-12 items-center">
+              <TouchableOpacity
+                onPress={openCreateRoutineFlow}
+                activeOpacity={0.8}
+                className="bg-white/40 border border-dashed border-black/20 rounded-[40px] p-12 items-center"
+              >
                 <View className="bg-black/5 p-5 rounded-full mb-4">
                   <History size={32} color="#BBB" />
                 </View>
                 <Text className="text-gray-400 text-center font-bold text-sm uppercase tracking-widest leading-loose">
                   No routines found.{"\n"}tap + to build your lab.
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
           <View className="h-24" />
         </ScrollView>
       </SafeAreaView>
 
+      {/* MODALS 
+       Modal della Exercise Library, con visibilità controllata dallo stato isWikiOpen*/}
        <ExerciseLibrary 
         visible={isWikiOpen} 
         onClose={() => setIsWikiOpen(false)}
+      />
+      { /* Modal di creazione routine, con visibilità controllata dallo stato isCreateOpen, 
+      e con funzioni di submit e gestione errori passate come props */ }
+      <CreateRoutineModal
+        visible={isCreateOpen}
+        onClose={closeCreateRoutineFlow}
+        onSubmit={handleCreateRoutineSubmit}
+        isSubmitting={isCreatingTemplate}
+        errorMessage={createTemplateError}
       />
 
     </View>

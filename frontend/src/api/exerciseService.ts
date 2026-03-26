@@ -3,7 +3,7 @@ import { Exercise } from '../../../shared/types';
 
 export const ExerciseService = {
   
-  // Questa funzione è il cuore del catalogo!
+  // Questa funzione recupera la lista degli esercizi. Se l'utente non è premium, filtra quelli "premium only".
   getExercises: async (isPremium: boolean = false) => {
     let query = supabase
       .from('exercises')

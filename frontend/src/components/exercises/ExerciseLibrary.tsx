@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Image, Pressable, PanResponder, Animated, Dimensions } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Image, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next'; // <--- AGGIUNTO
 import { Exercise } from '../../../../shared/types'; // (aggiusta il percorso)
 import { X, ChevronDown, Check } from 'lucide-react-native';
@@ -7,15 +7,12 @@ import { ExerciseService } from '../../api/exerciseService';
 import ExerciseDetailModal from './ExerciseDetailModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useSwipeDownClose } from '../../hooks/useSwipeDownClose';
 
 interface Props {
   visible?: boolean;
   onClose?: () => void;
 }
 
-const { height } = Dimensions.get('window');
-const SWIPE_CLOSE_MAX_START_Y = height * 0.58;
 const DIFFICULTIES: Array<'novice' | 'intermediate' | 'advanced'> = ['novice', 'intermediate', 'advanced'];
 const DIFFICULTY_WEIGHT: Record<string, number> = { novice: 1, intermediate: 2, advanced: 3 };
 
@@ -37,14 +34,6 @@ const getLocalizedMuscle = (muscle?: string | null) => {
 
 const getFallbackImageUrl = (exerciseName: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(exerciseName)}&background=E5E7EB&color=111827&size=128&rounded=true`;
-
-const shouldStartVerticalCloseGesture = (
-  dy: number,
-  dx: number,
-  y0: number,
-  canClose: boolean
-) =>
-  canClose && y0 <= SWIPE_CLOSE_MAX_START_Y && dy > 4 && Math.abs(dy) > Math.abs(dx);
 
 export default function ExerciseLibrary({ visible = true, onClose }: Props) {
   const { t } = useTranslation();
@@ -85,18 +74,13 @@ export default function ExerciseLibrary({ visible = true, onClose }: Props) {
     }
   }, [fetchExercises, visible]);
 
-  // HOOK CENTRALIZZATO PER SWIPE (FASE 2)
-  const { panY, panHandlers, closeAnimated, openAnimated } = useSwipeDownClose({ 
-    onClose, 
-    restrictStartY: true, 
-    startYThreshold: SWIPE_CLOSE_MAX_START_Y 
-  });
-
   useEffect(() => {
-    if (visible) {
-      openAnimated();
+    if (!visible) {
+      setSelectedExercise(null);
+      setIsDetailOpen(false);
+      setIsSortMenuOpen(false);
     }
-  }, [visible, openAnimated]);
+  }, [visible]);
 
   const muscleOptions = useMemo(
     () =>
@@ -148,36 +132,42 @@ export default function ExerciseLibrary({ visible = true, onClose }: Props) {
 
 
    return (
-    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={closeAnimated}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={isDetailOpen ? () => setIsDetailOpen(false) : onClose}
+    >
       <View
         style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}
-        {...panHandlers}
       >
-        <Pressable style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} onPress={closeAnimated} />
+        <Pressable
+          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
+          onPress={isDetailOpen ? undefined : onClose}
+        />
 
-        <Animated.View
+        <View
           className="w-full h-[92%] rounded-t-[38px] overflow-hidden"
-          style={{ transform: [{ translateY: panY }] }}
         >
           <LinearGradient
             colors={['#d4d4d8', '#e4e4e7', '#ffffff']}
             locations={[0, 0.35, 1]}
             style={{ flex: 1, paddingTop: 16, paddingHorizontal: 24 }}
           >
+          <View className="bg-transparent" style={{ zIndex: 10 }}>
+           <View className="items-center mb-4">
+              <View className="w-16 h-1.5 bg-black/20 rounded-full" />
+           </View>
+           <View className="flex-row justify-between items-center mb-6">
+              <Text className="text-3xl font-black">{t('exercises.title')}</Text>
+              {onClose && (
+                <TouchableOpacity onPress={onClose} className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
+                  <X size={20} color="black" />
+                </TouchableOpacity>
+              )}
+           </View>
+          </View>
           <View>
-          <View className="items-center mb-4">
-            <View className="w-16 h-1.5 bg-black/20 rounded-full" />
-         </View>
-
-         <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-3xl font-black">{t('exercises.title')}</Text>
-            {onClose && (
-              <TouchableOpacity onPress={closeAnimated} className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
-                <X size={20} color="black" />
-              </TouchableOpacity>
-            )}
-         </View>
-
          <TextInput 
             className="bg-gray-100 p-4 rounded-2xl mb-4 font-bold text-black"
             placeholder={t('exercises.search_placeholder')}
@@ -307,9 +297,12 @@ export default function ExerciseLibrary({ visible = true, onClose }: Props) {
             onClose={() => setIsDetailOpen(false)}
             exerciseName={selectedExercise?.name || 'Esercizio'}
             muscle={getLocalizedMuscle(selectedExercise?.target_muscle)}
+            equipment={selectedExercise?.equipment}
+            instructions={selectedExercise?.instructions}
+            videoUrl={selectedExercise?.video_url}
           />
           </LinearGradient>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
    )
