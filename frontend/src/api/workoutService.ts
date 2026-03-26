@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { PerformedSet, Workout, WorkoutSession, WorkoutTemplate, WorkoutTemplateExercise, WorkoutTemplateSet } from '../../../shared/types';
+import { DraftExercise, DraftSet } from '../hooks/useWorkoutCreation';
 
 export const WorkoutService = {
   
@@ -98,6 +99,63 @@ export const WorkoutService = {
       if (setsError) throw setsError;
     }
     return exerciseData as WorkoutTemplateExercise;
+  },
+
+  // -- SALVARE UN WORKOUT TEMPLATE COMPLETO (ALL-IN-ONE) --
+  saveCompleteWorkoutTemplate: async (
+    profileId: string,
+    name: string,
+    description: string | undefined,
+    exercises: DraftExercise[],
+    isPremium: boolean = false
+  ) => {
+    // 1. Crea il Template Base
+    const template = await WorkoutService.createTemplate(profileId, name, description, isPremium);
+
+    try {
+      // 2. Per ogni esercizio nel draft, salvalo con i suoi set
+      for (let i = 0; i < exercises.length; i++) {
+         const draftEx = exercises[i];
+         
+         // Mappiamo i DraftSet verso il formato atteso dal DB
+         const setsToInsert = draftEx.sets.map((draftSet, index) => {
+           const intensity_payload: Record<string, unknown> = {};
+           if (draftSet.clusterMiniSets) intensity_payload.cluster_mini_sets = parseInt(draftSet.clusterMiniSets, 10);
+           if (draftSet.clusterIntraRest) intensity_payload.cluster_intra_rest = parseInt(draftSet.clusterIntraRest, 10);
+           if (draftSet.dropsetDrops) intensity_payload.dropset_drops = parseInt(draftSet.dropsetDrops, 10);
+           if (draftSet.dropsetPercent) intensity_payload.dropset_percent = parseInt(draftSet.dropsetPercent, 10);
+
+           const parsedReps = parseInt(draftSet.reps, 10);
+         const parsedWeight = parseFloat(draftSet.intensity);
+
+         return {
+           target_reps_min: draftSet.reps && parsedReps > 0 ? parsedReps : null,
+           target_reps_max: draftSet.reps && parsedReps > 0 ? parsedReps : null,
+           target_weight: draftSet.intensity && !isNaN(parsedWeight) ? parsedWeight : null,
+           rest_seconds: parseInt(draftSet.restSeconds, 10) || 90,
+             set_type: draftSet.setType,
+             set_number: index + 1,
+             is_premium_feature: draftSet.setType !== 'normal',
+             intensity_payload: Object.keys(intensity_payload).length > 0 ? intensity_payload : null
+           };
+         }) as Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[];
+
+         await WorkoutService.addExerciseToTemplate(
+           template.id, 
+           draftEx.exercise.id, 
+           i + 1, // order
+           setsToInsert,
+           draftEx.notes
+         );
+      }
+    } catch (error) {
+      // ROLLBACK MANUALE: se fallisce qualcosa durante il salvataggio degli esercizi/serie, 
+      // cancelliamo il template "fantasma" che era stato creato all'inizio.
+      await supabase.from('workout_templates').delete().eq('id', template.id);
+      throw error;
+    }
+
+    return template;
   },
 
   // -- INIZIARE UNA SESSIONE (clonando la scheda in una sessione attiva) --

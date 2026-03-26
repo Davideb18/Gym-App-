@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { View, Text, TextInput, FlatList, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Image, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next'; // <--- AGGIUNTO
 import { Exercise } from '../../../../shared/types'; // (aggiusta il percorso)
-import { X, ChevronDown, Check } from 'lucide-react-native';
+import { X, ChevronDown, Check, Plus } from 'lucide-react-native';
 import { ExerciseService } from '../../api/exerciseService';
 import ExerciseDetailModal from './ExerciseDetailModal';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 interface Props {
   visible?: boolean;
   onClose?: () => void;
+  onExerciseAdd?: (exercise: Exercise) => void;
 }
 
 const DIFFICULTIES: Array<'novice' | 'intermediate' | 'advanced'> = ['novice', 'intermediate', 'advanced'];
@@ -35,7 +36,7 @@ const getLocalizedMuscle = (muscle?: string | null) => {
 const getFallbackImageUrl = (exerciseName: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(exerciseName)}&background=E5E7EB&color=111827&size=128&rounded=true`;
 
-export default function ExerciseLibrary({ visible = true, onClose }: Props) {
+export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd }: Props) {
   const { t } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -276,7 +277,7 @@ export default function ExerciseLibrary({ visible = true, onClose }: Props) {
               <Text className="mt-4 text-gray-500 font-bold">Caricamento esercizi...</Text>
             </View>
          ) : (
-           <FlatList
+            <FlatList
               data={filteredAndSortedExercises}
               keyExtractor={(item) => item.id}
               keyboardShouldPersistTaps="handled"
@@ -287,6 +288,7 @@ export default function ExerciseLibrary({ visible = true, onClose }: Props) {
                     setSelectedExercise(selectedItem);
                     setIsDetailOpen(true);
                   }} 
+                  onAdd={onExerciseAdd}
                 />
               )}
             />
@@ -309,7 +311,7 @@ export default function ExerciseLibrary({ visible = true, onClose }: Props) {
 }
 
 // COMPONENTE ISOLATO PER OGNI ELEMENTO DELLA LISTA (Performance Fix)
-const ExerciseListItem = React.memo(({ item, onSelect }: { item: Exercise; onSelect: (item: Exercise) => void }) => {
+const ExerciseListItem = React.memo(({ item, onSelect, onAdd }: { item: Exercise; onSelect: (item: Exercise) => void; onAdd?: (item: Exercise) => void }) => {
   const { t } = useTranslation();
   const [hasFailedImage, setHasFailedImage] = useState(false);
 
@@ -339,6 +341,17 @@ const ExerciseListItem = React.memo(({ item, onSelect }: { item: Exercise; onSel
           {getLocalizedMuscle(item.target_muscle)} • {t('exercises.difficulty_label')}: {item.difficulty ? t(`difficulty.${item.difficulty}`) : 'N/A'}
         </Text>
       </View>
+      {onAdd && (
+        <TouchableOpacity
+          className="w-10 h-10 bg-black rounded-full items-center justify-center ml-3 shadow-md"
+          onPress={(e) => {
+            e.stopPropagation();
+            onAdd(item);
+          }}
+        >
+          <Plus size={20} color="white" />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 });

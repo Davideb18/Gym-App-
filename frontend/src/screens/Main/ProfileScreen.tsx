@@ -10,7 +10,11 @@ import { useAuthStore } from '../../store/useAuthStore';
 
 
 export default function ProfileScreen() {
-  const { signOut } = useAuthStore();
+  const { user, signOut } = useAuthStore();
+
+  const memberSince = user?.created_at 
+    ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : 'Mar 2026';
 
   return (
     <View className="flex-1">
@@ -39,9 +43,9 @@ export default function ProfileScreen() {
             <View className="w-32 h-32 bg-black rounded-[48px] items-center justify-center shadow-2xl mb-6">
               <User size={60} color="#00FF00" strokeWidth={1.5} />
             </View>
-            <Text className="text-black text-3xl font-[1000] tracking-tighter uppercase">Davide B.</Text>
+            <Text className="text-black text-3xl font-[1000] tracking-tighter uppercase">{user?.user_metadata?.full_name || user?.email || 'User'}</Text>
             <View className="bg-black/5 px-4 py-2 rounded-full mt-2">
-              <Text className="text-black/40 font-black text-[10px] uppercase tracking-[3px]">Member since Mar 2026</Text>
+              <Text className="text-black/40 font-black text-[10px] uppercase tracking-[3px]">Member since {memberSince}</Text>
             </View>
           </View>
 

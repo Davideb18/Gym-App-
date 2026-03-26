@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +17,8 @@ import { supabase } from '../../api/supabaseClient';
 import { useAuthStore } from '../../store/useAuthStore';
 import ExerciseLibrary from '../../components/exercises/ExerciseLibrary';
 import CreateRoutineModal from '../../components/schede/CreateRoutineModal';
+import { WorkoutService } from '../../api/workoutService';
+import { DraftExercise } from '../../hooks/useWorkoutCreation';
 
 import { WorkoutTemplate } from '../../../../shared/types';
 
@@ -107,7 +110,7 @@ export default function SchedeScreen() {
 
   // Gestisce la creazione della routine, comunicando con Supabase e gestendo 
   // stati di caricamento ed errori
-  const handleCreateRoutineSubmit = async (name: string, description?: string) => {
+  const handleCreateRoutineSubmit = async (name: string, description: string | undefined, exercises: DraftExercise[]) => {
     if (!userId) {
       setCreateTemplateError('Utente non autenticato. Riprova il login.');
       return;
@@ -129,19 +132,13 @@ export default function SchedeScreen() {
       setIsCreatingTemplate(true);
       setCreateTemplateError(null);
 
-      const { error } = await supabase
-        .from('workout_templates')
-        .insert([
-          {
-            profile_id: userId,
-            name,
-            description: description ?? null,
-          },
-        ]);
-
-      if (error) {
-        throw error;
-      }
+      await WorkoutService.saveCompleteWorkoutTemplate(
+        userId,
+        name,
+        description,
+        exercises,
+        isPremium
+      );
 
       // Se la creazione ha successo, chiudiamo il modal e ricarichiamo la lista delle routine
       setIsCreateOpen(false);
@@ -184,6 +181,13 @@ export default function SchedeScreen() {
     enabled: !!userId, // Esegui solo se abbiamo l'userId
   });
 
+  // Gestione del pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetchTemplates();
+    setRefreshing(false);
+  };
 
   return (
     <View className="flex-1">
@@ -193,7 +197,12 @@ export default function SchedeScreen() {
       <LinearGradient colors={['#D1D5DB', '#FFFFFF', '#D1D5DB']} className="absolute inset-0" />
 
       <SafeAreaView className="flex-1">
-        <ScrollView className="px-6 pt-10">
+        <ScrollView 
+          className="px-6 pt-10"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+          }
+        >
           {/* HEADER */}
           <View className="flex-row justify-between items-end mb-12">
             <View>

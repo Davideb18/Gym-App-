@@ -140,16 +140,11 @@ export function useWorkoutCreation() {
     // se non ci sono esercizi nella scheda, restituisci un messaggio di errore
     if (exercises.length === 0) return 'Aggiungi almeno un esercizio';
 
-    // per ogni esercizio, controlla se ha almeno un set e se tutti i set hanno il campo reps compilato
+    // per ogni esercizio, controlla se ha almeno un set 
+    // Ora permettiamo che i campi reps e intensity siano vuoti!
     for (const ex of exercises) {
       if (ex.sets.length === 0) {
         return `Aggiungi almeno un set per ${ex.exercise.name}`;
-      }
-
-      for (const s of ex.sets) {
-        if (!s.reps.trim()) {
-          return `Compila il campo reps per ${ex.exercise.name}`;
-        }
       }
     }
 
