@@ -34,6 +34,7 @@ Sfruttando le variabili descritte sopra, implementare in futuro queste sezioni l
 - [ ] **Smart Filters:** Aggiungere i filtri "Principiante/Avanzato" e "Push/Pull" per la ricerca allenamenti.
 - [ ] **Generatore Schede / Try Something New:** Replicare localmente o chiamare dal db un algoritmo `/random` che offra variazioni casuali a chi è stanco del solito allenamento.
 - [ ] **Ricerca Full-Text:** Modificare o aggiungere una ricerca Postgres che permetta di trovare la barra di ricerca anche se un utente digita parole contenute "dentro le istruzioni" (Es. "panca declinata").
+- [ ] **Statistiche Avanzate Creazione Scheda (Premium):** Mostrare durata stimata e omino anatomico dei muscoli coinvolti nella scheda durante la sua configurazione.
 
 ---
 

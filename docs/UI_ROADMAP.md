@@ -5,62 +5,39 @@
 ### 1. Pulizia del "Main Screen" (`SchedeScreen.tsx`)
 - Risolvere eventuali problemi grafici o sovrapposizioni attuali.
 
-### 2. Attivazione del Flusso "Creazione Scheda (Custom)" - ALL-IN-ONE Modal
-**PREMIUM FEATURE ONLY** 🔒
+### 2. Flusso di Creazione Scheda (All-in-One Modal)
 
 #### Trigger Points:
-- Bottone in alto a destra ("Custom")
-- Riquadro tratteggiato grande sotto "My Routine" (quando non ci sono schede)
-- Pulsante "+" nella lista schede
+- Pulsante "+" principale nella schermata delle schede (o riquadri vuoti).
+- **ATTENZIONE**: Il pulsante "+" NON deve aprire un piccolo riquadro per inserire solo Nome e Descrizione. Deve aprire DIRETTAMENTE la modale Full-Screen di creazione della scheda completa.
 
-#### Architettura Modal:
-**CreateWorkoutModal** (Nuova componente)
-```
-┌─────────────────────────────────────┐
-│   [Nome Scheda] TextInput           │  ← Titolo della routine
-├─────────────────────────────────────┤
-│                                     │
-│  ESERCIZI:                          │
-│  ┌─────────────────────────────┐    │
-│  │ [Esercizio 1]               │    │
-│  │ Set 1: [Reps] [Intensità]   │    │
-│  │ Set 2: [Reps] [Intensità]   │    │
-│  │ [+ Add Set]                 │    │
-│  └─────────────────────────────┘    │
-│  ┌─────────────────────────────┐    │
-│  │ [Esercizio 2]               │    │
-│  │ Set 1: [Reps] [Intensità]   │    │
-│  └─────────────────────────────┘    │
-│                                     │
-│  [+ Add Exercise]                   │ ← Apre ExerciseLibrary
-│                                     │
-├─────────────────────────────────────┤
-│  [Annulla]  [Salva Scheda]          │
-└─────────────────────────────────────┘
-```
+#### Architettura Modal Formazione Scheda (Stile Hevy/Strong):
+La modale di creazione scheda include tutto il necessario in un'unica schermata.
+- **Header**: Nome Scheda (TextInput) e Descrizione (TextInput) all'inizio.
+- **Sezione Statistiche (Futuro)**: 
+  - Durata stimata dell'allenamento.
+  - Omino anatomico (mappa muscolare) con i muscoli coinvolti colorati in base agli esercizi inseriti.
+- **Lista Esercizi**:
+  - Elenco dinamico degli esercizi aggiunti.
+  - Per ogni esercizio aggiunto: elenco dei Set (Serie, Ripetizioni, Peso, Recupero).
+- **Aggiunta Esercizi**: 
+  - Bottone `+ Add Exercise` che apre la libreria degli esercizi (`ExerciseLibrary`).
+  - Nella libreria: ogni esercizio ha un bottone `+` per essere aggiunto direttamente alla scheda, oppure cliccandoci si apre il dettaglio per vederne l'esecuzione.
+
+#### Gestione Tecniche d'Intensità e Premium:
+- Ogni set può avere una "Tecnica di Intensità" (es. Drop Set, Rest Pause, Cluster, etc.).
+- Le tecniche d'intensità avanzate sono bloccate dietro il **Premium**.
+- **UI Premium**: Le tecniche bloccate devono essere VISIBILI nell'elenco a tendina o nei bottoni, ma contraddistinte da una grafica dedicata (es. icona lucchetto, colore diverso, badge "Premium").
+- **Flusso Popup**: Se l'utente preme su una tecnica d'intensità Premium (e non è abbonato), si apre il **Pop-up Premium** (che in futuro gestirà i pagamenti). La funzione non si attiva finché non viene sbloccato l'abbonamento.
 
 #### Flusso Dettagliato:
-1. **Inizializzazione Modal**: Input per nome scheda in alto
-2. **Aggiungi Esercizio**: Click `+ Add Exercise` → apre ExerciseLibrary
-   - Seleziona esercizio → si aggiunge con 1 set vuoto
-3. **Per Ogni Esercizio**: 
-   - Nome esercizio (leggibile, non editabile)
-   - List di Set con input fields:
-     - `Reps` (numero)
-     - `Intensità` (peso/% 1RM)
-     - `Recupero` (secondi, opzionale)
-   - Bottone `+ Add Set` → aggiunge nuovo set vuoto
-4. **Salvataggio**: Click salva → insert in `workout_templates` + loop insert in `workout_exercises` + loop insert in `workout_sets`
-
-#### Premium Gate:
-```typescript
-// Nel trigger handler:
-if (!isPremium) {
-  showPremiumPopup();
-  return;
-}
-openCreateWorkoutModal();
-```
+1. **Apertura Modale**: L'utente preme "+" → Si apre a schermo intero il form vuoto della scheda.
+2. **Compilazione Base**: L'utente inserisce Titolo e Descrizione (opzionale).
+3. **Selezione Esercizi**: L'utente preme `+ Add Exercise`, si apre l'ExerciseLibrary. Clicca il `+` di fianco all'esercizio desiderato.
+4. **Configurazione Set**: 
+   - L'esercizio appare nella scheda. Si inseriscono le Reps, i Kg e il Recupero.
+   - Si sceglie la tecnica. Se è Premium e l'utente è Free -> Popup Premium.
+5. **Salvataggio Globale**: L'utente preme "Salva Scheda" → Tutti i dati (Template, Esercizi, Set) vengono inviati in un'unica transazione/salvataggio al database.
 
 ### 3. Logica Schede Pubbliche e Gestione Premium
 - Sotto la sezione "My Routine", se l'utente clicca su una delle schede pre-impostate (Pubbliche / Premium):
