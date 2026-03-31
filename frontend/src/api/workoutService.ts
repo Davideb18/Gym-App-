@@ -127,6 +127,7 @@ export const WorkoutService = {
 
            const parsedReps = parseInt(draftSet.reps, 10);
          const parsedWeight = parseFloat(draftSet.intensity);
+         const premiumTypes = ['warmup', 'failure', 'backoff', 'dropset', 'cluster', 'myo_reps', 'rest_pause'];
 
          return {
            target_reps_min: draftSet.reps && parsedReps > 0 ? parsedReps : null,
@@ -135,7 +136,7 @@ export const WorkoutService = {
            rest_seconds: parseInt(draftSet.restSeconds, 10) || 90,
              set_type: draftSet.setType,
              set_number: index + 1,
-             is_premium_feature: draftSet.setType !== 'normal',
+             is_premium_feature: premiumTypes.includes(draftSet.setType),
              intensity_payload: Object.keys(intensity_payload).length > 0 ? intensity_payload : null
            };
          }) as Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[];
@@ -157,6 +158,18 @@ export const WorkoutService = {
 
     return template;
   },
+
+  // -- ELIMINARE UN WORKOUT TEMPLATE --
+  deleteTemplate: async (templateId: string, profileId: string) => {
+    const { error } = await supabase
+      .from('workout_templates')
+      .delete()
+      .eq('id', templateId)
+      .eq('profile_id', profileId);
+    
+    if (error) throw error;
+  },
+
 
   // -- INIZIARE UNA SESSIONE (clonando la scheda in una sessione attiva) --
   startSession: async (profileId: string, TemplateId?: string) => {

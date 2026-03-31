@@ -151,9 +151,10 @@ export function useWorkoutCreation() {
     return null;
   };
 
-  // verifica se ci sono set di tipo diverso da 'normal' per mostrare un avviso agli utenti non premium
+  // verifica se ci sono set di tipo premium per mostrare un avviso agli utenti non premium
+  const premiumTypes = ['warmup', 'failure', 'backoff', 'dropset', 'cluster', 'myo_reps', 'rest_pause'];
   const hasPremiumSetTypes = useMemo(
-    () => exercises.some((e) => e.sets.some((s) => s.setType !== 'normal')),
+    () => exercises.some((e) => e.sets.some((s) => premiumTypes.includes(s.setType))),
     [exercises]
   );
 

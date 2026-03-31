@@ -158,6 +158,29 @@ export default function SchedeScreen() {
     );
   };
 
+  // Funzione per eliminare una routine tramite Long Press
+  const handleDeleteRoutine = (templateId: string, templateName: string) => {
+    Alert.alert(
+      'Elimina Scheda',
+      `Sei sicuro di voler eliminare definitivamente "${templateName}"?`,
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { 
+          text: 'Elimina', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await WorkoutService.deleteTemplate(templateId, userId!); // userId il ! serve per dire a TypeScript che userId non è null
+              await refetchTemplates();
+            } catch (err: any) {
+              Alert.alert('Errore', err?.message || 'Non è stato possibile eliminare la scheda.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // -- FETCH TEMPLATES (Le tue schede) --
   const { 
     data: templates, 
@@ -280,39 +303,46 @@ export default function SchedeScreen() {
                     <Text className="text-white font-bold">Riprova</Text>
                   </TouchableOpacity>
                 </View>
-            ) : templates && templates.length > 0 ? (
-              templates.map((template) => (
-                <TouchableOpacity 
-                  key={template.id} 
-                  className="bg-white/70 border border-black/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-lg shadow-black/5" 
-                  activeOpacity={0.7}
-                  onPress={() => openRoutine(template.id, template.name)}
-                >
-                  <View className="bg-black p-3.5 rounded-2xl mr-5 shadow-md">
-                    <Dumbbell size={22} color="white" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-black font-black text-xl tracking-tight">{template.name}</Text>
-                  </View>
-                  <View className="bg-black/5 p-2 rounded-full">
-                    <ChevronRight size={18} color="#999" strokeWidth={3} />
-                  </View>
-                </TouchableOpacity>
-              ))
             ) : (
-              <TouchableOpacity
-                onPress={openCreateRoutineFlow}
-                activeOpacity={0.8}
-                className="bg-white/40 border border-dashed border-black/20 rounded-[40px] p-12 items-center"
-              >
-                <View className="bg-black/5 p-5 rounded-full mb-4">
-                  <History size={32} color="#BBB" />
-                </View>
-                <Text className="text-gray-400 text-center font-bold text-sm uppercase tracking-widest leading-loose">
-                  No routines found.{"\n"}tap + to build your lab.
-                </Text>
-              </TouchableOpacity>
+              // Se la cartella è vuota o piena, noi mostriamo comunque il bottone +
+              <View>
+                {/* 1. Ciclo che stampa le Routine se esistono */}
+                {templates?.map((template) => (
+                  <TouchableOpacity 
+                    key={template.id} 
+                    className="bg-white/70 border border-black/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-lg shadow-black/5" 
+                    activeOpacity={0.7}
+                    onPress={() => openRoutine(template.id, template.name)}
+                    onLongPress={() => handleDeleteRoutine(template.id, template.name)}
+                  >
+                    <View className="bg-black p-3.5 rounded-2xl mr-5 shadow-md">
+                      <Dumbbell size={22} color="white" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-black font-black text-xl tracking-tight">{template.name}</Text>
+                    </View>
+                    <View className="bg-black/5 p-2 rounded-full">
+                      <ChevronRight size={18} color="#999" strokeWidth={3} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {/* 2. Bottone "Add Routine" che si pianta ORA sempre alla fine! */}
+                <TouchableOpacity
+                  onPress={openCreateRoutineFlow}
+                  activeOpacity={0.8}
+                  className="bg-white/40 border border-dashed border-black/20 rounded-[40px] p-12 items-center mb-5"
+                >
+                  <View className="bg-black/5 p-5 rounded-full mb-4">
+                    <Plus size={32} color="#BBB" />
+                  </View>
+                  <Text className="text-gray-400 text-center font-bold text-sm uppercase tracking-widest leading-loose">
+                    {templates?.length === 0 ? "No routines found.\nTap + to build your lab" : "Add New Routine"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
+
           </View>
           <View className="h-24" />
         </ScrollView>
@@ -332,6 +362,7 @@ export default function SchedeScreen() {
         onSubmit={handleCreateRoutineSubmit}
         isSubmitting={isCreatingTemplate}
         errorMessage={createTemplateError}
+        isPremium={isPremium}
       />
 
     </View>
