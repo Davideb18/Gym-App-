@@ -21,6 +21,8 @@ import { WorkoutService } from '../../api/workoutService';
 import { DraftExercise } from '../../hooks/useWorkoutCreation';
 
 import { WorkoutTemplate } from '../../../../shared/types';
+import PremiumModal from '../../components/ui/PremiumModal';
+import WorkoutPreviewModal from '../../components/workout/WorkoutPreviewModal';
 
 type WorkoutTemplateRow = Pick<WorkoutTemplate, 'id' | 'name' | 'description' | 'created_at'>;
 
@@ -35,6 +37,15 @@ export default function SchedeScreen() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [createTemplateError, setCreateTemplateError] = useState<string | null>(null);
+
+  // Stato per il pop-up premium
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+
+  // Stato per la Preview del Workout
+  const [isWorkoutPreviewOpen, setIsWorkoutPreviewOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [templateToEdit, setTemplateToEdit] = useState<WorkoutTemplate | null>(null);
+
 
   // Effetto per caricare lo stato premium dell'utente all'inizio e ogni volta che cambia l'userId
   useEffect(() => {
@@ -82,30 +93,25 @@ export default function SchedeScreen() {
   }, [userId]);
 
   // -- FUNZIONI PER IL MODAL DI CREAZIONE ROUTINE --
-  // Apre il modal di creazione routine, controllando prima se l'utente ha raggiunto il limite
+  // apre il modal di creazione routine, controllando prima se l'utente ha raggiunto il limite aprendo il modal premium se necessario
   const openCreateRoutineFlow = () => {
     if (isLoadingPremium) return;
-
     const templatesCount = templates?.length ?? 0;
     const freeLimitReached = !isPremium && templatesCount >= 4;
-
     if (freeLimitReached) {
-      Alert.alert(
-        'Limite raggiunto',
-        'Con il piano free puoi creare fino a 4 schede. Passa a Premium per schede illimitate.'
-      );
+      setIsPremiumModalOpen(true); // <--- Ora apriamo il modal invece di un semplice alert
       return;
     }
-
     setCreateTemplateError(null);
     setIsCreateOpen(true);
-  };
+};
 
   // Chiude il modal di creazione routine, se non siamo in fase di creazione 
   // (per evitare chiusure accidentali durante l'inserimento)
   const closeCreateRoutineFlow = () => {
     if (isCreatingTemplate) return;
     setIsCreateOpen(false);
+    setTimeout(() => setTemplateToEdit(null), 300); // delay allowing modal slide down
   };
 
   // Gestisce la creazione della routine, comunicando con Supabase e gestendo 
@@ -116,32 +122,40 @@ export default function SchedeScreen() {
       return;
     }
 
-    // Controlla se l'utente ha raggiunto il limite di schede gratuite
-    const templatesCount = templates?.length ?? 0;
-    const freeLimitReached = !isPremium && templatesCount >= 4;
-    if (freeLimitReached) {
-      setCreateTemplateError(
-        'Limite schede raggiunto (4/4). Passa al piano Premium per crearne di più.'
-      );
-      return;
-    }
-
-    // Procediamo con la creazione della routine, mostrando un indicatore di caricamento 
-    // e gestendo eventuali errori
     try {
       setIsCreatingTemplate(true);
       setCreateTemplateError(null);
 
-      await WorkoutService.saveCompleteWorkoutTemplate(
-        userId,
-        name,
-        description,
-        exercises,
-        isPremium
-      );
+      if (templateToEdit) {
+        // Logica di Aggiornamento
+        await WorkoutService.updateCompleteWorkoutTemplate(
+          templateToEdit.id,
+          name,
+          description,
+          exercises
+        );
+      } else {
+        // Controlla se l'utente ha raggiunto il limite di schede gratuite SOLO IN CREAZIONE
+        const templatesCount = templates?.length ?? 0;
+        const freeLimitReached = !isPremium && templatesCount >= 4;
+        if (freeLimitReached) {
+          setCreateTemplateError('Limite schede raggiunto (4/4). Passa al piano Premium per crearne di più.');
+          setIsCreatingTemplate(false);
+          return;
+        }
 
-      // Se la creazione ha successo, chiudiamo il modal e ricarichiamo la lista delle routine
-      setIsCreateOpen(false);
+        // Logica di Creazione
+        await WorkoutService.saveCompleteWorkoutTemplate(
+          userId,
+          name,
+          description,
+          exercises,
+          isPremium
+        );
+      }
+
+      // Se la creazione/modifica ha successo, chiudiamo il modal e ricarichiamo la lista delle routine
+      closeCreateRoutineFlow();
       await refetchTemplates();
     } catch (err: any) {
       setCreateTemplateError(err?.message ?? 'Errore durante la creazione della routine.');
@@ -150,13 +164,12 @@ export default function SchedeScreen() {
     }
   };
 
-  // Funzione di placeholder per l'apertura della routine selezionata
+  // Funzione per aprire la preview della routine
   const openRoutine = (templateId: string, templateName: string) => {
-    Alert.alert(
-      'Routine selezionata',
-      `${templateName}\nID: ${templateId}\n\nTODO: aprire dettaglio routine / start workout`
-    );
+    setSelectedTemplateId(templateId);
+    setIsWorkoutPreviewOpen(true);
   };
+;
 
   // Funzione per eliminare una routine tramite Long Press
   const handleDeleteRoutine = (templateId: string, templateName: string) => {
@@ -363,7 +376,31 @@ export default function SchedeScreen() {
         isSubmitting={isCreatingTemplate}
         errorMessage={createTemplateError}
         isPremium={isPremium}
+        templateToEdit={templateToEdit}
+        onRequirePremium={() => setIsPremiumModalOpen(true)}
       />
+
+      <PremiumModal 
+        visible={isPremiumModalOpen} 
+        onClose={() => setIsPremiumModalOpen(false)} 
+        onUpgrade={() => {
+          // Implementeremo la logica di pagamento in futuro
+          Alert.alert("Premium", "Logica di upgrade in arrivo!");
+          setIsPremiumModalOpen(false);
+        }}
+      />
+
+      <WorkoutPreviewModal 
+        visible={isWorkoutPreviewOpen} 
+        onClose={() => setIsWorkoutPreviewOpen(false)} 
+        templateId={selectedTemplateId} 
+        onEdit={(fullTemplate) => {
+           setTemplateToEdit(fullTemplate);
+           setIsWorkoutPreviewOpen(false);
+           setTimeout(() => setIsCreateOpen(true), 300);
+        }}
+      />
+
 
     </View>
   );

@@ -17,7 +17,10 @@ import HomeScreen from './src/screens/Main/HomeScreen';
 import SchedeScreen from './src/screens/Main/SchedeScreen';
 import HistoryScreen from './src/screens/Main/HistoryScreen';
 import ProfileScreen from './src/screens/Main/ProfileScreen';
+import ActiveWorkoutScreen from './src/screens/Main/ActiveWorkoutScreen';
+import MiniWorkoutPlayer from './src/components/workout/MiniWorkoutPlayer';
 import { Home, Layout, History, User } from 'lucide-react-native';
+import { useActiveWorkout } from './src/store/useActiveWorkout';
 
 const queryClient = new QueryClient();
 
@@ -25,6 +28,7 @@ type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 
 export default function App() {
   const { session, setAuth } = useAuthStore();
+  const { isExpanded, setIsExpanded } = useActiveWorkout();
   const [currentTab, setCurrentTab] = useState('Home');
   const [authMode, setAuthMode] = useState<AuthMode>('login');
 
@@ -97,28 +101,37 @@ export default function App() {
             {renderScreen()}
             {/* TAB BAR ... */}
 
-            {/* CUSTOM PREMIUM TAB BAR */}
-            <View className="absolute bottom-8 left-6 right-6 h-20 bg-black/90 rounded-[35px] flex-row items-center justify-around px-4 shadow-2xl border border-white/10">
-              <TouchableOpacity onPress={() => setCurrentTab('Home')} className="items-center p-2">
-                <Home size={24} color={currentTab === 'Home' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Home' ? 3 : 2} />
-                {currentTab === 'Home' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
-              </TouchableOpacity>
-              
-              <TouchableOpacity onPress={() => setCurrentTab('Schede')} className="items-center p-2">
-                <Layout size={24} color={currentTab === 'Schede' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Schede' ? 3 : 2} />
-                {currentTab === 'Schede' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
-              </TouchableOpacity>
+            {/* GLOBAL ACTIVE WORKOUT MODAL */}
+            <ActiveWorkoutScreen />
 
-              <TouchableOpacity onPress={() => setCurrentTab('History')} className="items-center p-2">
-                <History size={24} color={currentTab === 'History' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'History' ? 3 : 2} />
-                {currentTab === 'History' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
-              </TouchableOpacity>
+            {!isExpanded && (
+              <>
+                <MiniWorkoutPlayer onPress={() => setIsExpanded(true)} />
+                
+                {/* CUSTOM PREMIUM TAB BAR */}
+                <View className="absolute bottom-8 left-6 right-6 h-20 bg-black/90 rounded-[35px] flex-row items-center justify-around px-4 shadow-2xl border border-white/10">
+                  <TouchableOpacity onPress={() => setCurrentTab('Home')} className="items-center p-2">
+                    <Home size={24} color={currentTab === 'Home' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Home' ? 3 : 2} />
+                    {currentTab === 'Home' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity onPress={() => setCurrentTab('Schede')} className="items-center p-2">
+                    <Layout size={24} color={currentTab === 'Schede' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Schede' ? 3 : 2} />
+                    {currentTab === 'Schede' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                  </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => setCurrentTab('Profile')} className="items-center p-2">
-                <User size={24} color={currentTab === 'Profile' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Profile' ? 3 : 2} />
-                {currentTab === 'Profile' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
-              </TouchableOpacity>
-            </View>
+                  <TouchableOpacity onPress={() => setCurrentTab('History')} className="items-center p-2">
+                    <History size={24} color={currentTab === 'History' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'History' ? 3 : 2} />
+                    {currentTab === 'History' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => setCurrentTab('Profile')} className="items-center p-2">
+                    <User size={24} color={currentTab === 'Profile' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Profile' ? 3 : 2} />
+                    {currentTab === 'Profile' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         ) : (
           renderAuthScreen()

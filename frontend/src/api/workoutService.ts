@@ -159,6 +159,66 @@ export const WorkoutService = {
     return template;
   },
 
+  // -- AGGIORNARE UN WORKOUT TEMPLATE COMPLETO --
+  updateCompleteWorkoutTemplate: async (
+    templateId: string,
+    name: string,
+    description: string | undefined,
+    exercises: DraftExercise[]
+  ) => {
+    // 1. Aggiorna la testata
+    const { error: updateError } = await supabase
+      .from('workout_templates')
+      .update({ name, description })
+      .eq('id', templateId);
+      
+    if (updateError) throw updateError;
+
+    // 2. Elimina tutti i vecchi esercizi (le foreign key dovrebbero avere ON DELETE CASCADE per eliminare i set figli)
+    const { error: deleteError } = await supabase
+      .from('workout_template_exercises')
+      .delete()
+      .eq('template_id', templateId);
+
+    if (deleteError) throw deleteError;
+
+    // 3. Reinserisce la nuova struttura
+    for (let i = 0; i < exercises.length; i++) {
+       const draftEx = exercises[i];
+       
+       const setsToInsert = draftEx.sets.map((draftSet, index) => {
+         const intensity_payload: Record<string, unknown> = {};
+         if (draftSet.clusterMiniSets) intensity_payload.cluster_mini_sets = parseInt(draftSet.clusterMiniSets, 10);
+         if (draftSet.clusterIntraRest) intensity_payload.cluster_intra_rest = parseInt(draftSet.clusterIntraRest, 10);
+         if (draftSet.dropsetDrops) intensity_payload.dropset_drops = parseInt(draftSet.dropsetDrops, 10);
+         if (draftSet.dropsetPercent) intensity_payload.dropset_percent = parseInt(draftSet.dropsetPercent, 10);
+
+         const parsedReps = parseInt(draftSet.reps, 10);
+         const parsedWeight = parseFloat(draftSet.intensity);
+         const premiumTypes = ['warmup', 'failure', 'backoff', 'dropset', 'cluster', 'myo_reps', 'rest_pause'];
+
+         return {
+           target_reps_min: draftSet.reps && parsedReps > 0 ? parsedReps : null,
+           target_reps_max: draftSet.reps && parsedReps > 0 ? parsedReps : null,
+           target_weight: draftSet.intensity && !isNaN(parsedWeight) ? parsedWeight : null,
+           rest_seconds: parseInt(draftSet.restSeconds, 10) || 90,
+           set_type: draftSet.setType,
+           set_number: index + 1,
+           is_premium_feature: premiumTypes.includes(draftSet.setType),
+           intensity_payload: Object.keys(intensity_payload).length > 0 ? intensity_payload : null
+         };
+       }) as Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[];
+
+       await WorkoutService.addExerciseToTemplate(
+         templateId, 
+         draftEx.exercise.id, 
+         i + 1, 
+         setsToInsert,
+         draftEx.notes
+       );
+    }
+  },
+
   // -- ELIMINARE UN WORKOUT TEMPLATE --
   deleteTemplate: async (templateId: string, profileId: string) => {
     const { error } = await supabase

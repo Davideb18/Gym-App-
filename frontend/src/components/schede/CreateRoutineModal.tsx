@@ -17,11 +17,12 @@ import { Plus } from 'lucide-react-native';
 import { useWorkoutCreation, DraftExercise } from '../../hooks/useWorkoutCreation';
 import ExerciseLibrary from '../exercises/ExerciseLibrary';
 import ExerciseDetailModal from '../exercises/ExerciseDetailModal';
-import { SetType } from '../../../../shared/types';
+import { SetType, WorkoutTemplate } from '../../../../shared/types';
 
 import RoutineStatsSummary from './CreateRoutine/RoutineStatsSummary';
 import RoutineExerciseCard from './CreateRoutine/RoutineExerciseCard';
 import SetTypeSelectorModal from './CreateRoutine/SetTypeSelectorModal';
+import PremiumModal from '../ui/PremiumModal';
 
 interface CreateRoutineModalProps {
   visible: boolean;
@@ -30,6 +31,8 @@ interface CreateRoutineModalProps {
   isSubmitting?: boolean;
   errorMessage?: string | null;
   isPremium?: boolean;
+  templateToEdit?: WorkoutTemplate | null;
+  onRequirePremium?: () => void;
 }
 
 export default function CreateRoutineModal({
@@ -39,6 +42,8 @@ export default function CreateRoutineModal({
   isSubmitting = false,
   errorMessage = null,
   isPremium = false,
+  templateToEdit = null,
+  onRequirePremium,
 }: CreateRoutineModalProps) {
   const {
     name, setName,
@@ -51,7 +56,8 @@ export default function CreateRoutineModal({
     updateSetField,
     updateExerciseNotes,
     validate,
-    reset
+    reset,
+    loadTemplate
   } = useWorkoutCreation();
 
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -59,16 +65,23 @@ export default function CreateRoutineModal({
   
   const [activeSetTypePicker, setActiveSetTypePicker] = useState<{ exerciseLocalId: string, setLocalId: string } | null>(null);
   const [activeExerciseInfo, setActiveExerciseInfo] = useState<any | null>(null);
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!visible) {
+    if (visible) {
+      if (templateToEdit) {
+        loadTemplate(templateToEdit);
+      } else {
+        reset();
+      }
+    } else {
       reset();
       setLocalError(null);
       setIsLibraryOpen(false);
       setActiveExerciseInfo(null);
       setActiveSetTypePicker(null);
     }
-  }, [visible]);
+  }, [visible, templateToEdit]);
 
   const handleSubmit = async () => {
     const errorMsg = validate();
@@ -84,10 +97,10 @@ export default function CreateRoutineModal({
     if (!activeSetTypePicker) return;
 
     if (isPremiumType && !isPremium) {
-      Alert.alert(
-        'Funzionalità Premium',
-        'Le tecniche d\'intensità avanzate sono riservate agli utenti Premium. Sblocca il potenziale del tuo allenamento!'
-      );
+      setActiveSetTypePicker(null);
+      setTimeout(() => {
+        setIsPremiumModalOpen(true);
+      }, 300);
       return;
     }
     updateSetField(activeSetTypePicker.exerciseLocalId, activeSetTypePicker.setLocalId, 'setType', setType);
@@ -104,7 +117,7 @@ export default function CreateRoutineModal({
           <TouchableOpacity onPress={onClose} disabled={isSubmitting} className="w-20">
             <Text className="text-gray-500 font-bold text-lg">Annulla</Text>
           </TouchableOpacity>
-          <Text className="text-xl font-black text-black">Crea Scheda</Text>
+          <Text className="text-xl font-black text-black">{templateToEdit ? 'Modifica Routine' : 'Crea Scheda'}</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={isSubmitting} className="w-20 items-end">
             {isSubmitting ? (
               <ActivityIndicator size="small" color="#000" />
@@ -174,6 +187,15 @@ export default function CreateRoutineModal({
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <PremiumModal 
+          visible={isPremiumModalOpen} 
+          onClose={() => setIsPremiumModalOpen(false)} 
+          onUpgrade={() => {
+            Alert.alert("Premium", "Logica di pagamento in arrivo!");
+            setIsPremiumModalOpen(false);
+          }}
+        />
       </View>
 
       {/* EXERCISE INFO MODAL (USING OFFICIAL COMPONENT) */}

@@ -1,6 +1,6 @@
 
 import { useMemo, useState } from 'react';
-import { Exercise, SetType } from '../../../shared/types';
+import { Exercise, SetType, WorkoutTemplate } from '../../../shared/types';
 
 // struttura dati che contiene un set in fase di creazione della scheda
 export interface DraftSet {
@@ -165,6 +165,43 @@ export function useWorkoutCreation() {
     setExercises([]);
   };
 
+  // Carica i dati di un Template esistente nel Builder per poterli modificare
+  const loadTemplate = (template: WorkoutTemplate) => {
+    setName(template.name || '');
+    setDescription(template.description || '');
+
+    if (template.workout_template_exercises) {
+      const loadedExercises: DraftExercise[] = template.workout_template_exercises
+        .sort((a, b) => a.exercise_order - b.exercise_order)
+        .map((te) => {
+          const loadedSets: DraftSet[] = (te.workout_template_sets || [])
+            .sort((a, b) => a.set_number - b.set_number)
+            .map((ts) => {
+              const payload = ts.intensity_payload as Record<string, number> | null;
+              return {
+                localId: uid(),
+                setType: ts.set_type,
+                reps: ts.target_reps_max ? ts.target_reps_max.toString() : '',
+                intensity: ts.target_weight ? ts.target_weight.toString() : '',
+                restSeconds: ts.rest_seconds ? ts.rest_seconds.toString() : '90',
+                clusterMiniSets: payload?.cluster_mini_sets?.toString() || '',
+                clusterIntraRest: payload?.cluster_intra_rest?.toString() || '',
+                dropsetDrops: payload?.dropset_drops?.toString() || '',
+                dropsetPercent: payload?.dropset_percent?.toString() || '',
+              };
+            });
+
+          return {
+            localId: uid(),
+            exercise: te.exercises as unknown as Exercise, // from relational alias
+            notes: te.notes || '',
+            sets: loadedSets.length > 0 ? loadedSets : [buildEmptySet()],
+          };
+        });
+      setExercises(loadedExercises);
+    }
+  };
+
   // restituisce tutte le variabili e funzioni necessarie per gestire la creazione della scheda
   return {
     name,
@@ -181,5 +218,6 @@ export function useWorkoutCreation() {
     validate,
     hasPremiumSetTypes,
     reset,
+    loadTemplate,
   };
 }
