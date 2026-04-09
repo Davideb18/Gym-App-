@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'; // <--- AGGIUNTO
 import { Exercise } from '../../../../shared/types'; // (aggiusta il percorso)
 import { X, ChevronDown, Check, Plus } from 'lucide-react-native';
 import { ExerciseService } from '../../api/exerciseService';
-import ExerciseDetailModal from './ExerciseDetailModal';
+import { useExerciseModal } from '../../store/useExerciseModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -49,8 +49,8 @@ export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [failedImageIds, setFailedImageIds] = useState<Record<string, boolean>>({});
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  
+  const { openExercise } = useExerciseModal();
 
   const fetchExercises = useCallback(async () => {
     try {
@@ -69,16 +69,12 @@ export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd
     if (visible) {
       fetchExercises();
     } else {
-      setIsDetailOpen(false);
-      setSelectedExercise(null);
       setIsSortMenuOpen(false);
     }
   }, [fetchExercises, visible]);
 
   useEffect(() => {
     if (!visible) {
-      setSelectedExercise(null);
-      setIsDetailOpen(false);
       setIsSortMenuOpen(false);
     }
   }, [visible]);
@@ -137,14 +133,14 @@ export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd
       visible={visible}
       animationType="slide"
       transparent={true}
-      onRequestClose={isDetailOpen ? () => setIsDetailOpen(false) : onClose}
+      onRequestClose={onClose}
     >
       <View
         style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}
       >
         <Pressable
           style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
-          onPress={isDetailOpen ? undefined : onClose}
+          onPress={onClose}
         />
 
         <View
@@ -285,24 +281,13 @@ export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd
                 <ExerciseListItem 
                   item={item} 
                   onSelect={(selectedItem) => {
-                    setSelectedExercise(selectedItem);
-                    setIsDetailOpen(true);
+                    openExercise(selectedItem.id);
                   }} 
                   onAdd={onExerciseAdd}
                 />
               )}
             />
          )}
-
-          <ExerciseDetailModal
-            visible={isDetailOpen}
-            onClose={() => setIsDetailOpen(false)}
-            exerciseName={selectedExercise?.name || 'Esercizio'}
-            muscle={getLocalizedMuscle(selectedExercise?.target_muscle)}
-            equipment={selectedExercise?.equipment}
-            instructions={selectedExercise?.instructions}
-            videoUrl={selectedExercise?.video_url}
-          />
           </LinearGradient>
         </View>
       </View>

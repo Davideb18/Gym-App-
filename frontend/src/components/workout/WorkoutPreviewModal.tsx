@@ -6,8 +6,10 @@ import { X, Play, Clock, Flame, Dumbbell, Edit3 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { useActiveWorkout } from '../../store/useActiveWorkout';
+import { useExerciseModal } from '../../store/useExerciseModal';
 import { WorkoutTemplate, Exercise } from '../../../../shared/types';
 import { supabase } from '../../api/supabaseClient';
+import ExerciseDetailModal from '../exercises/ExerciseDetailModal';
 
 const { height } = Dimensions.get('window');
 
@@ -20,6 +22,8 @@ interface WorkoutPreviewModalProps {
 
 export default function WorkoutPreviewModal({ visible, onClose, templateId, onEdit }: WorkoutPreviewModalProps) {
   const startWorkout = useActiveWorkout((state) => state.startWorkout);
+  const isActiveWorkout = useActiveWorkout((state) => state.isActive);
+  const { openExercise } = useExerciseModal();
 
   const { data: template, isLoading, isError } = useQuery<WorkoutTemplate>({
     queryKey: ['template_details', templateId],
@@ -40,8 +44,26 @@ export default function WorkoutPreviewModal({ visible, onClose, templateId, onEd
 
   const handleStart = () => {
     if (template) {
-      startWorkout(template);
-      onClose();
+      if (isActiveWorkout) {
+        Alert.alert(
+          "Allenamento in corso",
+          "Hai già un allenamento attivo. Vuoi sovrascriverlo perdendo i dati correnti?",
+          [
+            { text: "Annulla", style: "cancel" },
+            { 
+              text: "Sovrascrivi", 
+              style: "destructive", 
+              onPress: () => {
+                startWorkout(template);
+                onClose();
+              }
+            }
+          ]
+        );
+      } else {
+        startWorkout(template);
+        onClose();
+      }
     }
   };
 
@@ -129,9 +151,11 @@ export default function WorkoutPreviewModal({ visible, onClose, templateId, onEd
                     )}
 
                     <View className="flex-1">
-                      <Text className="font-black text-black text-lg tracking-tight leading-tight">
-                        {exerciseData?.name || 'Esercizio'}
-                      </Text>
+                      <TouchableOpacity onPress={() => { if(exerciseData?.id) openExercise(exerciseData.id) }}>
+                        <Text className="font-black text-black text-lg tracking-tight leading-tight">
+                          {exerciseData?.name || 'Esercizio'}
+                        </Text>
+                      </TouchableOpacity>
                       <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mt-1">
                         {exerciseData?.target_muscle || 'Muscoli Vari'}
                       </Text>
@@ -204,6 +228,8 @@ export default function WorkoutPreviewModal({ visible, onClose, templateId, onEd
 
         </View>
       </View>
+
+      <ExerciseDetailModal />
     </Modal>
   );
 }

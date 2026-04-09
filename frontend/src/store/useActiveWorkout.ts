@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { WorkoutTemplate, SetType, WorkoutTemplateExercise, WorkoutTemplateSet } from '../../../shared/types';
 import 'react-native-get-random-values'; // Serve per generare ID unici (uuid) in React Native
 import { v4 as uuidv4 } from 'uuid';
+import { useRestTimer } from './useRestTimer';
 
 // 1. Tipi di Supporto: Modelli di Lavoro In Gara (Live)
 export interface LiveSet {
@@ -111,15 +112,32 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
 
   // FUNZIONE 3: L'utente preme la Spunta Verde (✓)
   toggleSetComplete: (exerciseId, setId) => {
-    set((state) => ({
-      exercises: state.exercises.map(ex => {
-        if (ex.id !== exerciseId) return ex;
-        return {
-          ...ex,
-          sets: ex.sets.map(s => s.id === setId ? { ...s, is_completed: !s.is_completed } : s)
-        };
-      })
-    }));
+    const state = get();
+    let isCompleting = false;
+    let restSeconds = 90;
+
+    const updatedExercises = state.exercises.map(ex => {
+      if (ex.id !== exerciseId) return ex;
+      return {
+        ...ex,
+        sets: ex.sets.map(s => {
+          if (s.id === setId) {
+            isCompleting = !s.is_completed;
+            // Se c'è un tempo di recupero impostato lo prendiamo
+            if (s.rest_seconds) restSeconds = s.rest_seconds;
+            return { ...s, is_completed: isCompleting };
+          }
+          return s;
+        })
+      };
+    });
+
+    set({ exercises: updatedExercises });
+
+    // Se l'abbiamo appena completato, facciamo partire il timer
+    if (isCompleting) {
+      useRestTimer.getState().startTimer(restSeconds);
+    }
   },
 
   finishWorkout: () => {

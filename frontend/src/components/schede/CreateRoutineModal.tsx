@@ -18,6 +18,7 @@ import { useWorkoutCreation, DraftExercise } from '../../hooks/useWorkoutCreatio
 import ExerciseLibrary from '../exercises/ExerciseLibrary';
 import ExerciseDetailModal from '../exercises/ExerciseDetailModal';
 import { SetType, WorkoutTemplate } from '../../../../shared/types';
+import { useExerciseModal } from '../../store/useExerciseModal';
 
 import RoutineStatsSummary from './CreateRoutine/RoutineStatsSummary';
 import RoutineExerciseCard from './CreateRoutine/RoutineExerciseCard';
@@ -64,8 +65,8 @@ export default function CreateRoutineModal({
   const [localError, setLocalError] = useState<string | null>(null);
   
   const [activeSetTypePicker, setActiveSetTypePicker] = useState<{ exerciseLocalId: string, setLocalId: string } | null>(null);
-  const [activeExerciseInfo, setActiveExerciseInfo] = useState<any | null>(null);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const { openExercise } = useExerciseModal();
 
   useEffect(() => {
     if (visible) {
@@ -78,7 +79,6 @@ export default function CreateRoutineModal({
       reset();
       setLocalError(null);
       setIsLibraryOpen(false);
-      setActiveExerciseInfo(null);
       setActiveSetTypePicker(null);
     }
   }, [visible, templateToEdit]);
@@ -166,7 +166,7 @@ export default function CreateRoutineModal({
                   key={ex.localId}
                   exerciseDraft={ex}
                   index={index}
-                  onOpenExerciseInfo={setActiveExerciseInfo}
+                  onOpenExerciseInfo={(exInfo) => openExercise(exInfo.id)}
                   removeExercise={removeExercise}
                   updateExerciseNotes={updateExerciseNotes}
                   addSet={addSet}
@@ -196,17 +196,6 @@ export default function CreateRoutineModal({
             setIsPremiumModalOpen(false);
           }}
         />
-      </View>
-
-      {/* EXERCISE INFO MODAL (USING OFFICIAL COMPONENT) */}
-      <ExerciseDetailModal
-        visible={!!activeExerciseInfo}
-        onClose={() => setActiveExerciseInfo(null)}
-        exerciseName={activeExerciseInfo?.name}
-        muscle={activeExerciseInfo?.target_muscle}
-        equipment={activeExerciseInfo?.equipment}
-        instructions={activeExerciseInfo?.instructions}
-      />
 
       {/* MODAL SELEZIONE TIPO DI SET */}
       <SetTypeSelectorModal
@@ -224,6 +213,8 @@ export default function CreateRoutineModal({
           setIsLibraryOpen(false);
         }}
       />
+      </View>
+      <ExerciseDetailModal />
     </Modal>
   );
 }

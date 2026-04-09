@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { ChevronDown, Check, Clock, Play } from 'lucide-react-native';
+import { ChevronDown, Check, Clock, Play, Loader2, Timer, X, History, Info } from 'lucide-react-native';
 import { useActiveWorkout } from '../../store/useActiveWorkout';
+import { useAuthStore } from '../../store/useAuthStore';
+import { WorkoutService } from '../../api/workoutService';
+import { useRestTimer } from '../../store/useRestTimer';
+import { useExerciseModal } from '../../store/useExerciseModal';
+import ExerciseDetailModal from '../../components/exercises/ExerciseDetailModal';
 
 export default function ActiveWorkoutScreen() {
   const { isActive, isExpanded, setIsExpanded, routineName, exercises, startTime, updateSet, toggleSetComplete, finishWorkout, cancelWorkout } = useActiveWorkout();
   
+  const { isActive: timerActive, timeLeft, addTime, reduceTime, skipTimer } = useRestTimer();
+  const { openExercise } = useExerciseModal();
+  
+  const { session } = useAuthStore();
+  const [isSaving, setIsSaving] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -29,10 +39,35 @@ export default function ActiveWorkoutScreen() {
         { 
           text: "Termina", 
           style: "default",
-          onPress: () => {
-            finishWorkout();
-            // TODO: Route to History Screen or Success modal
-            Alert.alert("Complimenti!", "Allenamento salvato con successo.");
+          onPress: async () => {
+            if (!session?.user?.id || !startTime) return;
+            setIsSaving(true);
+            try {
+              let totalVolume = 0;
+              exercises.forEach(ex => {
+                ex.sets.forEach(set => {
+                  if (set.is_completed && set.real_weight && set.real_reps) {
+                    totalVolume += set.real_weight * set.real_reps;
+                  }
+                });
+              });
+
+              await WorkoutService.saveCompletedSession(
+                session.user.id,
+                useActiveWorkout.getState().templateId,
+                startTime,
+                totalVolume,
+                exercises
+              );
+
+              finishWorkout();
+              Alert.alert("Complimenti!", "Allenamento salvato con successo.");
+            } catch (error) {
+              console.error("Errore salvataggio:", error);
+              Alert.alert("Errore", "Si è verificato un errore durante il salvataggio.");
+            } finally {
+              setIsSaving(false);
+            }
           }
         }
       ]
@@ -79,9 +114,19 @@ export default function ActiveWorkoutScreen() {
       <ScrollView className="flex-1 px-4 pt-6">
         {exercises.map((ex, idx) => (
           <View key={ex.id} className="mb-6 bg-[#1A1A1A] rounded-3xl p-5 border border-white/5">
-            <Text className="text-white font-black text-xl mb-4 tracking-tighter">
-              {idx + 1}. {ex.exercise_name}
-            </Text>
+            <View className="flex-row items-center justify-between mb-4">
+               <TouchableOpacity onPress={() => openExercise(ex.exercise_id)} className="flex-1 mr-2">
+                 <Text className="text-white font-black text-xl tracking-tighter" numberOfLines={2}>
+                   {idx + 1}. {ex.exercise_name}
+                 </Text>
+               </TouchableOpacity>
+               <TouchableOpacity 
+                 onPress={() => openExercise(ex.exercise_id)}
+                 className="p-2 rounded-full bg-white/5 border border-white/10"
+               >
+                 <Info size={16} color="#00FF00" />
+               </TouchableOpacity>
+            </View>
             
             {/* Header Colonne Serie */}
             <View className="flex-row mb-2 px-2">
@@ -153,6 +198,46 @@ export default function ActiveWorkoutScreen() {
             </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* FULL SCREEN REST TIMER */}
+      {timerActive && (
+        <View className="absolute bottom-8 left-4 right-4 bg-black/90 rounded-[35px] p-4 flex-row items-center justify-between z-50 shadow-2xl border border-white/10">
+          <View className="flex-row items-center">
+            <View className="bg-blue-500/20 p-2 rounded-full mr-3">
+              <Timer size={24} color="#3b82f6" />
+            </View>
+            <View>
+              <Text className="text-gray-400 text-xs font-bold uppercase">Recupero</Text>
+              <Text className="text-[#3b82f6] text-xl font-bold font-mono">
+                {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-center">
+            <TouchableOpacity onPress={() => reduceTime(15)} className="bg-white/10 px-3 py-2 rounded-lg mr-2 border border-white/5">
+              <Text className="text-white text-sm font-bold">-15</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => addTime(15)} className="bg-white/10 px-3 py-2 rounded-lg mr-2 border border-white/5">
+              <Text className="text-white text-sm font-bold">+15</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={skipTimer} className="bg-red-500/20 p-2.5 rounded-full">
+              <X size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* OVERLAY DI CARICAMENTO */}
+      {isSaving && (
+        <View className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+           <Text className="text-white text-lg font-bold">Salvataggio in corso...</Text>
+        </View>
+      )}
+
+      {/* MODALE ESERCIZIO (Se aperta, sovrasta il workout screen) */}
+      <ExerciseDetailModal />
+      
       </KeyboardAvoidingView>
     </Modal>
   );

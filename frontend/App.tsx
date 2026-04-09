@@ -18,7 +18,8 @@ import SchedeScreen from './src/screens/Main/SchedeScreen';
 import HistoryScreen from './src/screens/Main/HistoryScreen';
 import ProfileScreen from './src/screens/Main/ProfileScreen';
 import ActiveWorkoutScreen from './src/screens/Main/ActiveWorkoutScreen';
-import MiniWorkoutPlayer from './src/components/workout/MiniWorkoutPlayer';
+import SmartWorkoutWidget from './src/components/workout/SmartWorkoutWidget';
+import ExerciseDetailModal from './src/components/exercises/ExerciseDetailModal';
 import { Home, Layout, History, User } from 'lucide-react-native';
 import { useActiveWorkout } from './src/store/useActiveWorkout';
 
@@ -106,7 +107,7 @@ export default function App() {
 
             {!isExpanded && (
               <>
-                <MiniWorkoutPlayer onPress={() => setIsExpanded(true)} />
+                <SmartWorkoutWidget onPressExpand={() => setIsExpanded(true)} />
                 
                 {/* CUSTOM PREMIUM TAB BAR */}
                 <View className="absolute bottom-8 left-6 right-6 h-20 bg-black/90 rounded-[35px] flex-row items-center justify-around px-4 shadow-2xl border border-white/10">
@@ -132,6 +133,9 @@ export default function App() {
                 </View>
               </>
             )}
+
+            {/* MODALE DETTAGLI ESERCIZIO GLOBALE */}
+            <ExerciseDetailModal />
           </View>
         ) : (
           renderAuthScreen()

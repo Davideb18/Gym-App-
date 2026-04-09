@@ -287,5 +287,128 @@ export const WorkoutService = {
 
     if (error) throw error;
     return data as WorkoutSession;
+  },
+
+  // -- SALVARE UN'INTERA SESSIONE LIVE COMPLETATA --
+  saveCompletedSession: async (
+    profileId: string,
+    templateId: string | undefined,
+    startTime: number,
+    totalVolume: number,
+    exercises: any[]
+  ) => {
+    // 1. Create the session
+    const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('workout_sessions')
+      .insert([{
+        profile_id: profileId,
+        template_id: templateId || null,
+        status: 'completed',
+        started_at: new Date(startTime).toISOString(),
+        completed_at: new Date().toISOString(),
+        duration_seconds: durationSeconds,
+        total_volume: totalVolume
+      }])
+      .select()
+      .single();
+
+    if (sessionError) throw sessionError;
+    if (!sessionData) throw new Error("Errore durante la creazione della sessione");
+
+    // 2. Prepare the performed_sets payload
+    const setsToInsert: any[] = [];
+    
+    exercises.forEach(ex => {
+      ex.sets.forEach((set: any) => {
+         // Salviamo solo le serie segnate come completate
+        if (set.is_completed) {
+          setsToInsert.push({
+            session_id: sessionData.id,
+            exercise_id: ex.exercise_id,
+            template_set_id: set.template_set_id || null,
+            set_number: set.set_number,
+            set_type: set.set_type,
+            reps: set.real_reps || null,
+            weight: set.real_weight || null,
+            is_completed: true,
+            performed_at: new Date().toISOString(),
+          });
+        }
+      });
+    });
+
+    if (setsToInsert.length > 0) {
+      const { error: setsError } = await supabase
+        .from('performed_sets')
+        .insert(setsToInsert);
+      
+      if (setsError) {
+        // Rollback
+        await supabase.from('workout_sessions').delete().eq('id', sessionData.id);
+        throw setsError;
+      }
+    }
+
+    return sessionData as WorkoutSession;
+  },
+
+  // -- OTTENERE LO STORICO DI UN ESERCIZIO IN LINEA --
+  getExerciseHistory: async (exerciseId: string) => {
+    // Cerchiamo i set completati per questo esercizio
+    const { data, error } = await supabase
+      .from('performed_sets')
+      .select('*, workout_sessions(completed_at, notes)')
+      .eq('exercise_id', exerciseId)
+      .eq('is_completed', true)
+      .order('performed_at', { ascending: false })
+      .limit(35);
+
+    if (error) throw error;
+    
+    if (!data || data.length === 0) return [];
+
+    // Raggruppa per session_id
+    const grouped = data.reduce((acc: Record<string, any>, curr: any) => {
+        const sid = curr.session_id;
+        if(!acc[sid]) {
+            acc[sid] = {
+               session_id: sid,
+               completed_at: curr.workout_sessions?.completed_at || curr.performed_at,
+               notes: curr.workout_sessions?.notes || '',
+               sets: []
+            };
+        }
+        // Li ordiniamo temporalmente
+        acc[sid].sets.push(curr);
+        return acc;
+    }, {});
+
+    // Per ogni sessione riordiniamo i set in base al set_number
+    Object.values(grouped).forEach((session: any) => {
+       session.sets.sort((a: any, b: any) => a.set_number - b.set_number);
+    });
+
+    return Object.values(grouped).sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+  },
+
+  // -- UPDATE NOTE DELLA SESSIONE --
+  updateSessionNotes: async (sessionId: string, notes: string) => {
+    const { error } = await supabase
+      .from('workout_sessions')
+      .update({ notes })
+      .eq('id', sessionId);
+    if (error) throw error;
+  },
+
+  // -- PRENDERE I DATI BASE DELL'ESERCIZIO --
+  getExerciseBaseInfo: async (exerciseId: string) => {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .eq('id', exerciseId)
+      .single();
+    if (error) throw error;
+    return data;
   }
 };
