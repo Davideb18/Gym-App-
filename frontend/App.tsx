@@ -20,6 +20,9 @@ import ProfileScreen from './src/screens/Main/ProfileScreen';
 import ActiveWorkoutScreen from './src/screens/Main/ActiveWorkoutScreen';
 import SmartWorkoutWidget from './src/components/workout/SmartWorkoutWidget';
 import ExerciseDetailModal from './src/components/exercises/ExerciseDetailModal';
+import WorkoutPreviewScreen from './src/components/workout/WorkoutPreviewScreen';
+import CreateRoutineScreen from './src/components/schede/CreateRoutineScreen';
+import WorkoutSummaryScreen from './src/components/workout/WorkoutSummaryScreen';
 import { Home, Layout, History, User } from 'lucide-react-native';
 import { useActiveWorkout } from './src/store/useActiveWorkout';
 
@@ -98,7 +101,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <View className="flex-1 bg-white">
         {session && authMode !== 'reset-password' ? (
-          <View className="flex-1">
+          <View className="flex-1 bg-[#0A0A0A]">
             {renderScreen()}
             {/* TAB BAR ... */}
 
@@ -110,32 +113,38 @@ export default function App() {
                 <SmartWorkoutWidget onPressExpand={() => setIsExpanded(true)} />
                 
                 {/* CUSTOM PREMIUM TAB BAR */}
-                <View className="absolute bottom-8 left-6 right-6 h-20 bg-black/90 rounded-[35px] flex-row items-center justify-around px-4 shadow-2xl border border-white/10">
+                <View className="absolute bottom-8 left-6 right-6 h-20 bg-black/90 rounded-[35px] flex-row items-center justify-around px-4 shadow-2xl border border-white/5 backdrop-blur-md">
                   <TouchableOpacity onPress={() => setCurrentTab('Home')} className="items-center p-2">
-                    <Home size={24} color={currentTab === 'Home' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Home' ? 3 : 2} />
-                    {currentTab === 'Home' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                    <Home size={24} color={currentTab === 'Home' ? '#10B981' : '#FFF'} strokeWidth={currentTab === 'Home' ? 3 : 2} />
+                    {currentTab === 'Home' && <View className="w-1 h-1 rounded-full bg-[#10B981] mt-1.5" />}
                   </TouchableOpacity>
                   
                   <TouchableOpacity onPress={() => setCurrentTab('Schede')} className="items-center p-2">
-                    <Layout size={24} color={currentTab === 'Schede' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Schede' ? 3 : 2} />
-                    {currentTab === 'Schede' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                    <Layout size={24} color={currentTab === 'Schede' ? '#10B981' : '#FFF'} strokeWidth={currentTab === 'Schede' ? 3 : 2} />
+                    {currentTab === 'Schede' && <View className="w-1 h-1 rounded-full bg-[#10B981] mt-1.5" />}
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => setCurrentTab('History')} className="items-center p-2">
-                    <History size={24} color={currentTab === 'History' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'History' ? 3 : 2} />
-                    {currentTab === 'History' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                    <History size={24} color={currentTab === 'History' ? '#10B981' : '#FFF'} strokeWidth={currentTab === 'History' ? 3 : 2} />
+                    {currentTab === 'History' && <View className="w-1 h-1 rounded-full bg-[#10B981] mt-1.5" />}
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => setCurrentTab('Profile')} className="items-center p-2">
-                    <User size={24} color={currentTab === 'Profile' ? '#00FF00' : '#FFF'} strokeWidth={currentTab === 'Profile' ? 3 : 2} />
-                    {currentTab === 'Profile' && <View className="w-1.5 h-1.5 rounded-full bg-[#00FF00] mt-1" />}
+                    <User size={24} color={currentTab === 'Profile' ? '#10B981' : '#FFF'} strokeWidth={currentTab === 'Profile' ? 3 : 2} />
+                    {currentTab === 'Profile' && <View className="w-1 h-1 rounded-full bg-[#10B981] mt-1.5" />}
                   </TouchableOpacity>
                 </View>
               </>
             )}
 
-            {/* MODALE DETTAGLI ESERCIZIO GLOBALE */}
+            {/* MODALE DETTAGLI ESERCIZIO GLOBALE (Sotto i Full Screens) */}
             <ExerciseDetailModal />
+
+            {/* FULL SCREENS GLOBALI (Sostituiscono le modali di React Native) */}
+            <WorkoutPreviewScreen />
+            <CreateRoutineScreen />
+            <WorkoutSummaryScreen />
+
           </View>
         ) : (
           renderAuthScreen()

@@ -410,5 +410,18 @@ export const WorkoutService = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // -- OTTENERE LE SESSIONI COMPLETATE --
+  getRecentSessions: async (profileId: string) => {
+    const { data, error } = await supabase
+      .from('workout_sessions')
+      .select('*, workout_templates(name), performed_sets(*)')
+      .eq('profile_id', profileId)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
   }
 };

@@ -1,55 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { X, PlayCircle, Activity, TrendingUp, Flame, History, Info, Save, FileText } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Animated, Dimensions, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { X, PlaySquare, History, FileText, Save, Info } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { WorkoutService } from '../../api/workoutService';
 import { useExerciseModal } from '../../store/useExerciseModal';
+import ExerciseVideoPlayer from './ExerciseVideoPlayer';
+import ExerciseCharts from './ExerciseCharts';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ExerciseDetailModal() {
   const { isOpen, selectedExerciseId, closeModal } = useExerciseModal();
-  const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
+  const [activeTab, setActiveTab] = useState<'descrizione' | 'history'>('descrizione');
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
-  
   const queryClient = useQueryClient();
-
-  const [renderModal, setRenderModal] = useState(false);
-  const screenHeight = Dimensions.get('window').height;
-  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isOpen) {
-      setActiveTab('info');
+      setActiveTab('descrizione');
       setEditingNotes({});
-      setRenderModal(true);
-      
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          bounciness: 0,
-          speed: 14
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true
-        })
-      ]).start();
-    } else if (renderModal) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: screenHeight,
-          duration: 300,
-          useNativeDriver: true
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true
-        })
-      ]).start(() => setRenderModal(false));
     }
   }, [isOpen]);
 
@@ -72,19 +41,12 @@ export default function ExerciseDetailModal() {
     }
   });
 
-  if (!renderModal) return null;
+  if (!isOpen) return null;
 
   const exName = baseInfo?.name || 'Caricamento...';
   const exMuscle = baseInfo?.target_muscle_group || 'Misto';
   const exEquipment = baseInfo?.equipment || 'Bodyweight';
   const instructions = baseInfo?.instructions || '';
-
-  // Max weight calculation from real history
-  let bestWeight: number | string = '--';
-  if (historySessions && historySessions.length > 0) {
-     const max = Math.max(...historySessions.flatMap((s: any) => s.sets.map((set: any) => set.weight || 0)));
-     if (max > 0) bestWeight = max;
-  }
 
   const handleNotesChange = (sessionId: string, val: string) => {
      setEditingNotes(prev => ({...prev, [sessionId]: val}));
@@ -96,214 +58,178 @@ export default function ExerciseDetailModal() {
      }
   };
 
-  const sheet = (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-      style={{ flex: 1, justifyContent: 'flex-end' }}
-    >
-      <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.5)', opacity: fadeAnim }}>
-         <Pressable style={{ flex: 1 }} onPress={closeModal} />
-      </Animated.View>
+  const mockupVideoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
+
+  return (
+    <View className="absolute inset-0 z-[105] elevation-[105]">
+      <TouchableOpacity activeOpacity={1} onPress={closeModal} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center' }} />
       
-      <Animated.View 
-         className="w-full h-[92%] rounded-t-[38px] overflow-hidden flex shadow-2xl bg-white"
-         style={{ transform: [{ translateY: slideAnim }] }}
-      >
-        <LinearGradient colors={['#d4d4d8', '#e4e4e7', '#ffffff']} locations={[0, 0.35, 1]} style={{ flex: 1 }}>
-          <View className="px-6 pt-4 pb-6 bg-transparent" style={{ zIndex: 10 }}>
-            <View className="items-center mb-4">
-               <View className="w-16 h-1.5 bg-black/20 rounded-full self-center" />
+      <View className="absolute bottom-0 w-full h-[93%] rounded-t-[40px] overflow-hidden shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+        <BlurView intensity={100} tint="dark" className="flex-1 border-t border-x border-white/10">
+          
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+            
+            <View className="w-full items-center pt-3 pb-2">
+                <View className="w-12 h-1.5 bg-white/30 rounded-full" />
             </View>
-            <View className="flex-row justify-between items-start">
-              <View className="flex-1 pr-4">
-                {loadingInfo ? (
-                   <ActivityIndicator size="small" color="#FF4500" className="self-start mb-2" />
-                ) : (
-                   <Text className="text-black text-4xl font-[1000] tracking-tighter leading-10" numberOfLines={2}>{exName}</Text>
-                )}
-                <Text className="text-[#FF4500] font-bold uppercase text-[12px] tracking-[3px] mt-2">
-                  {exMuscle} • {exEquipment}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={closeModal}
-                className="w-12 h-12 bg-black/5 rounded-full items-center justify-center border border-black/5"
-              >
-                <X size={24} color="black" />
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          <View className="flex-row mx-6 mb-6 bg-gray-100 rounded-[20px] p-1.5">
-            <TouchableOpacity
-              onPress={() => setActiveTab('info')}
-              className={`flex-1 py-3.5 rounded-[16px] flex-row justify-center items-center ${activeTab === 'info' ? 'bg-[#D1D5DB]' : 'bg-transparent'}`}
-            >
-              <Info size={16} color={activeTab === 'info' ? '#374151' : '#9CA3AF'} style={{ marginRight: 8 }} />
-              <Text className={`font-black text-[11px] ${activeTab === 'info' ? 'text-[#374151]' : 'text-[#9CA3AF]'}`}>
-                Info & Dati
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setActiveTab('history')}
-              className={`flex-1 py-3.5 rounded-[16px] flex-row justify-center items-center ${activeTab === 'history' ? 'bg-[#D1D5DB]' : 'bg-transparent'}`}
-            >
-              <History size={16} color={activeTab === 'history' ? '#374151' : '#9CA3AF'} style={{ marginRight: 8 }} />
-              <Text className={`font-black text-[11px] ${activeTab === 'history' ? 'text-[#374151]' : 'text-[#9CA3AF]'}`}>
-                Cronologia & Note
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 64 }} showsVerticalScrollIndicator={false}>
-            {activeTab === 'info' ? (
-              <>
-                <View className="w-full h-48 bg-black/5 rounded-3xl mt-4 items-center justify-center border border-black/5 overflow-hidden relative">
-                  <PlayCircle size={48} color="rgba(0,0,0,0.2)" />
-                  <View className="absolute bottom-3 right-4 bg-white/80 px-3 py-1 rounded-full">
-                    <Text className="text-black text-xs font-bold">Video Coming Soon</Text>
-                  </View>
-                </View>
-
-                {/* KPI e Dati Ottimizzati */}
-                <View className="flex-row justify-between mt-6">
-                  <View className="flex-1 bg-white rounded-3xl p-4 mr-2 border border-black/5 shadow-sm">
-                    <View className="flex-row items-center mb-2">
-                      <TrendingUp size={16} color="#FF4500" />
-                      <Text className="text-gray-400 text-xs font-bold ml-1 uppercase">1RM Storico</Text>
+             <View className="px-6 pt-2 pb-6 border-b border-white/5">
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1 pr-4">
+                    {loadingInfo ? (
+                       <ActivityIndicator size="small" color="#10B981" className="self-start mb-2" />
+                    ) : (
+                       <Text className="text-white text-3xl font-black tracking-tighter leading-8" numberOfLines={2}>{exName}</Text>
+                    )}
+                    <View className="flex-row items-center mt-2">
+                       <View className="bg-white/10 px-2 py-0.5 rounded-md mr-2">
+                          <Text className="text-gray-300 font-bold uppercase text-[10px] tracking-widest">{exMuscle}</Text>
+                       </View>
+                       <Text className="text-gray-500 font-bold uppercase text-[10px] tracking-widest">{exEquipment}</Text>
                     </View>
-                    <Text className="text-black text-2xl font-black">
-                      {bestWeight} <Text className="text-sm text-gray-500">kg</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={closeModal}
+                    className="w-10 h-10 bg-white/10 rounded-full items-center justify-center border border-white/5"
+                  >
+                    <X size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+             </View>
+
+             {/* Navigation Pills (2 TABS) */}
+             <View className="px-6 mt-4">
+                <View className="flex-row bg-black/40 rounded-full p-1 border border-white/5">
+                  <TouchableOpacity
+                    onPress={() => setActiveTab('descrizione')}
+                    className={`flex-1 py-2.5 rounded-full flex-row justify-center items-center ${activeTab === 'descrizione' ? 'bg-white/10' : 'bg-transparent'}`}
+                  >
+                    <Info size={14} color={activeTab === 'descrizione' ? '#10B981' : '#6B7280'} style={{ marginRight: 6 }} />
+                    <Text className={`font-black uppercase tracking-widest text-[10px] ${activeTab === 'descrizione' ? 'text-white' : 'text-gray-500'}`}>
+                      Descrizione
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => setActiveTab('history')}
+                    className={`flex-1 py-2.5 rounded-full flex-row justify-center items-center ${activeTab === 'history' ? 'bg-white/10' : 'bg-transparent'}`}
+                  >
+                    <History size={14} color={activeTab === 'history' ? '#10B981' : '#6B7280'} style={{ marginRight: 6 }} />
+                    <Text className={`font-black uppercase tracking-widest text-[10px] ${activeTab === 'history' ? 'text-white' : 'text-gray-500'}`}>
+                      Storico
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+             </View>
+
+            <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+              
+              {activeTab === 'descrizione' && (
+                <View className="pb-10">
+                  <ExerciseVideoPlayer videoUrl={mockupVideoUrl} />
+                  
+                  <View className="mt-8 bg-black/40 rounded-[32px] p-6 border border-white/5 shadow-inner">
+                    <Text className="text-white text-xl font-black mb-4 tracking-tight">Istruzioni d'Esecuzione</Text>
+                    <Text className="text-gray-400 text-sm leading-6">
+                      {instructions && instructions.trim().length > 0
+                        ? instructions
+                        : 'Manca la documentazione per questo esercizio. Focus sulla contrazione e discesa lenta (Tempo 3-0-1-0).'}
                     </Text>
                   </View>
 
-                  <View className="flex-1 bg-white rounded-3xl p-4 ml-2 border border-black/5 shadow-sm overflow-hidden relative">
-                    <LinearGradient colors={['rgba(255,69,0,0.1)', 'transparent']} className="absolute inset-0 top-1/2" />
-                    <View className="flex-row items-center mb-2 z-10">
-                      <Flame size={16} color="#FF4500" />
-                      <Text className="text-gray-400 text-xs font-bold ml-1 uppercase">Livello</Text>
-                    </View>
-                    <Text className="text-black text-xl font-black z-10">Gorilla</Text>
-                  </View>
+                  <ExerciseCharts historyData={historySessions || []} />
                 </View>
+              )}
 
-                {/* Spazio preparato per il grafico futuro */}
-                <View className="w-full h-40 bg-white rounded-3xl mt-4 items-center justify-center border border-black/5 p-4 shadow-sm">
-                  <Activity size={30} color="rgba(0,0,0,0.1)" />
-                  <Text className="text-gray-400 text-sm font-medium text-center mt-2">
-                    Integrazione Grafico Volumi in lavorazione.
-                  </Text>
-                </View>
+              {activeTab === 'history' && (
+                 <View className="pb-10">
+                   {loadingHistory ? (
+                      <ActivityIndicator size="large" color="#10B981" className="mt-10" />
+                   ) : historySessions && historySessions.length > 0 ? (
+                     historySessions.map((session: any, idx: number) => {
+                       const sessionNotes = editingNotes[session.session_id] !== undefined ? editingNotes[session.session_id] : session.notes;
 
-                <View className="mt-8 mb-10">
-                  <Text className="text-black text-xl font-bold mb-4">Come si esegue</Text>
-                  <Text className="text-gray-600 text-base leading-6">
-                    {instructions && instructions.trim().length > 0
-                      ? instructions
-                      : 'Istruzioni non disponibili per questo esercizio.'}
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <View className="mt-2">
-                <View style={{ marginBottom: 24 }}>
-                  <Text style={{ color: 'black', fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>I tuoi Allenamenti Guardati a Raggi X</Text>
-                  <Text style={{ color: '#6B7280', fontSize: 13 }}>
-                    Qui puoi vedere come hai affrontato <Text style={{ color: '#FF4500', fontWeight: 'bold' }}>{exName}</Text> nel tempo e annotare ricordi.
-                  </Text>
-                </View>
+                       return (
+                         <View
+                           key={`${session.session_id}-${idx}`}
+                           className={`rounded-[32px] p-5 mb-4 border border-white/5 shadow-sm ${idx === 0 ? 'bg-white/10' : 'bg-black/40'}`}
+                         >
+                           <View className="flex-row justify-between items-center mb-4 pb-4 border-b border-white/5">
+                             <Text className="text-white font-black text-lg">
+                               {new Date(session.completed_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                             </Text>
+                             <View className="bg-[#10B981]/20 px-3 py-1.5 rounded-full border border-[#10B981]/30">
+                               <Text className="text-[#10B981] font-bold text-xs uppercase tracking-widest">Sessione</Text>
+                             </View>
+                           </View>
 
-                {loadingHistory ? (
-                   <ActivityIndicator size="large" color="#FF4500" className="mt-10" />
-                ) : historySessions && historySessions.length > 0 ? (
-                  historySessions.map((session: any, idx: number) => {
-                    const sessionNotes = editingNotes[session.session_id] !== undefined ? editingNotes[session.session_id] : session.notes;
+                           <View className="flex-row justify-between items-center mb-3 px-2">
+                             <Text className="text-gray-500 font-bold w-12 text-center text-xs uppercase tracking-widest">Set</Text>
+                             <Text className="text-gray-500 font-bold flex-1 text-center text-xs uppercase tracking-widest">Kg</Text>
+                             <Text className="text-gray-500 font-bold flex-1 text-center text-xs uppercase tracking-widest">Reps</Text>
+                           </View>
 
-                    return (
-                      <View
-                        key={`${session.session_id}-${idx}`}
-                        className={`rounded-[24px] p-5 mb-4 border border-gray-200 ${idx === 0 ? 'bg-white shadow-sm' : 'bg-white/80'}`}
-                      >
-                        <View className="flex-row justify-between items-center mb-4 pb-4 border-b border-gray-100">
-                          <Text className="text-black font-black text-lg">
-                            {new Date(session.completed_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
-                          </Text>
-                          <View className="bg-orange-500/10 px-3 py-1.5 rounded-full">
-                            <Text className="text-[#FF4500] font-bold text-xs uppercase">Sessione</Text>
-                          </View>
-                        </View>
+                           {session.sets.map((setItem: any) => (
+                             <View
+                               key={setItem.id}
+                               className="flex-row justify-between items-center bg-black/40 p-3 rounded-2xl mb-2 border border-white/5"
+                             >
+                               <View className="bg-white/5 border border-white/10 w-8 h-8 rounded-full items-center justify-center">
+                                 <Text className="text-gray-300 font-black">{setItem.set_number}</Text>
+                               </View>
+                               <Text className="text-white font-black text-xl flex-1 text-center tracking-tighter">
+                                 {setItem.weight ?? '--'}
+                               </Text>
+                               <Text className="text-white font-black text-xl flex-1 text-center tracking-tighter">
+                                 {setItem.reps ?? '--'}
+                               </Text>
+                             </View>
+                           ))}
 
-                        <View className="flex-row justify-between items-center mb-3">
-                          <Text className="text-gray-400 font-bold w-12 text-center text-xs uppercase">Set</Text>
-                          <Text className="text-gray-400 font-bold flex-1 text-center text-xs uppercase">Kg</Text>
-                          <Text className="text-gray-400 font-bold flex-1 text-center text-xs uppercase">Reps</Text>
-                        </View>
-
-                        {session.sets.map((setItem: any) => (
-                          <View
-                            key={setItem.id}
-                            className="flex-row justify-between items-center bg-gray-50 p-2.5 rounded-2xl mb-2"
-                          >
-                            <View className="bg-white border border-gray-200 w-8 h-8 rounded-full items-center justify-center">
-                              <Text className="text-black font-black">{setItem.set_number}</Text>
-                            </View>
-                            <Text className="text-black font-black text-lg flex-1 text-center">
-                              {setItem.weight ?? '--'}
-                            </Text>
-                            <Text className="text-black font-black text-lg flex-1 text-center">
-                              {setItem.reps ?? '--'}
-                            </Text>
-                          </View>
-                        ))}
-
-                        {/* Note Section */}
-                        <View className="mt-4 pt-4 border-t border-gray-100">
-                          <View className="flex-row items-center mb-2">
-                             <FileText size={14} color="#9CA3AF" />
-                             <Text className="text-gray-500 text-xs font-bold ml-1 uppercase">Note di Recupero</Text>
-                          </View>
-                          <View className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex-row items-end">
-                            <TextInput
-                              className="flex-1 text-black font-medium text-sm pt-0 pb-0"
-                              multiline
-                              placeholder="Che sensazioni hai avuto qua? Es. 'Poca spinta nel braccio sx'"
-                              placeholderTextColor="#9CA3AF"
-                              value={sessionNotes}
-                              onChangeText={(val) => handleNotesChange(session.session_id, val)}
-                            />
-                            {editingNotes[session.session_id] !== undefined && editingNotes[session.session_id] !== session.notes && (
-                               <TouchableOpacity onPress={() => saveNotes(session.session_id)} className="bg-[#FF4500] p-1.5 rounded-full ml-2">
-                                  {updateNotesMutation.isPending && updateNotesMutation.variables?.sessionId === session.session_id ? (
-                                     <ActivityIndicator size="small" color="white" />
-                                  ) : (
-                                     <Save size={14} color="white" />
-                                  )}
-                               </TouchableOpacity>
-                            )}
-                          </View>
-                        </View>
-
-                      </View>
-                    );
-                  })
-                ) : (
-                  <View className="bg-white/50 rounded-2xl p-6 items-center border border-gray-200 mt-6">
-                    <Text className="text-gray-500 font-bold mb-1">Nessun dato storico</Text>
-                    <Text className="text-gray-400 text-xs text-center">Inizia ad allenarti con questo esercizio per popolare i tuoi record a raggi X.</Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </ScrollView>
-        </LinearGradient>
-      </Animated.View>
-    </KeyboardAvoidingView>
-  );
-
-  return (
-    <View style={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0, zIndex: 9999, elevation: 9999 }}>
-      {sheet}
+                           {/* Note Edit Section */}
+                           <View className="mt-4 pt-4 border-t border-white/5">
+                             <View className="flex-row items-center mb-2 px-2">
+                                <FileText size={14} color="#9CA3AF" />
+                                <Text className="text-gray-400 text-xs font-bold ml-1.5 uppercase tracking-widest">Appunti</Text>
+                             </View>
+                             <View className="bg-black/40 rounded-[20px] p-3 border border-white/5 flex-row items-end">
+                               <TextInput
+                                 className="flex-1 text-white font-medium text-sm pt-0 pb-0"
+                                 multiline
+                                 placeholder="Es. 'Ottima spinta ma polso dolorante'"
+                                 placeholderTextColor="#666"
+                                 value={sessionNotes}
+                                 onChangeText={(val) => handleNotesChange(session.session_id, val)}
+                               />
+                               {editingNotes[session.session_id] !== undefined && editingNotes[session.session_id] !== session.notes && (
+                                  <TouchableOpacity onPress={() => saveNotes(session.session_id)} className="bg-[#10B981] p-2 rounded-full ml-2 shadow-lg shadow-green-900/50">
+                                     {updateNotesMutation.isPending && updateNotesMutation.variables?.sessionId === session.session_id ? (
+                                        <ActivityIndicator size="small" color="black" />
+                                     ) : (
+                                        <Save size={16} color="black" />
+                                     )}
+                                  </TouchableOpacity>
+                               )}
+                             </View>
+                           </View>
+                         </View>
+                       );
+                     })
+                   ) : (
+                     <View className="bg-black/40 rounded-[32px] p-8 items-center justify-center border border-white/5 mt-6 border-dashed">
+                       <View className="bg-white/5 w-16 h-16 rounded-full items-center justify-center mb-4 border border-white/10">
+                         <History size={24} color="#666" />
+                       </View>
+                       <Text className="text-white font-black text-lg mb-1 tracking-tight">Nessun log storico</Text>
+                       <Text className="text-gray-500 text-xs text-center">Registra le tue performance in allenamento per popolare questi dati.</Text>
+                     </View>
+                   )}
+                 </View>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </BlurView>
+      </View>
     </View>
   );
 }

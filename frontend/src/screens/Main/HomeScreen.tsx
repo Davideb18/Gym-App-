@@ -4,193 +4,136 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { BlurView } from 'expo-blur';
 import { Flame, Trophy, Activity, ChevronRight, Quote, Zap, Dumbbell } from 'lucide-react-native';
 
-// IMPORTIAMO IL NOSTRO NUOVO POPUP
 import ExerciseDetailModal from '../../components/exercises/ExerciseDetailModal';
-import ExerciseLibrary from '../../components/exercises/ExerciseLibrary'; // <-- Aggiunto
+import ExerciseLibrary from '../../components/exercises/ExerciseLibrary';
 
 export default function HomeScreen() {
-  // Logic for Animal Level (Mockup for now)
   const animalLevel = "Silver Gorilla";
   const progressToNext = 75; // percentage
   
-  // STATO PER CONTROLLARE SE IL MODAL DEL SINGOLO ESERCIZIO È APERTO
-  const [isExerciseDetailVisible, setIsExerciseDetailVisible] = useState(false);
-  
-  // STATO PER CONTROLLARE LA LIBRERIA ESERCIZI (NUOVA SCHERMATA/MODAL)
-  const [isLibraryVisible, setIsLibraryVisible] = useState(false);
-  
   return (
-    <View className="flex-1">
-      <StatusBar style="dark" />
+    <View className="flex-1 bg-[#040404]">
+      <StatusBar style="light" />
       
-      {/* 1. PREMIUM GRADIENT BACKGROUND */}
-      <LinearGradient
-        colors={['#D1D5DB', '#FFFFFF', '#D1D5DB']}
-        className="absolute inset-0"
-      />
+      {/* Sfondo HomeScreen */}
+      <View className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#10B981]/5 to-transparent opacity-80" />
 
       <SafeAreaView className="flex-1">
-        <ScrollView className="px-6 pt-10">
+        <ScrollView className="flex-1 px-5 pt-8" contentContainerStyle={{ paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
           
           {/* HEADER - LOGO SIGNATURE */}
-          <View className="flex-row justify-between items-center mb-10">
+          <View className="flex-row justify-between items-center mb-8">
             <View className="flex-row items-center">
-              <Text className="text-black text-3xl font-[1000] tracking-tighter">
+              <Text className="text-white text-3xl font-[1000] tracking-tighter">
                 THE
               </Text>
-              <View className="ml-1 bg-black px-1.5 py-0.5">
-                <Text className="text-white text-xl font-black italic">LAB</Text>
+              <View className="ml-1 bg-[#10B981] px-1.5 py-0.5 rounded shadow-sm shadow-green-900/50">
+                <Text className="text-black text-xl font-black italic">LAB</Text>
               </View>
             </View>
-            <TouchableOpacity className="bg-black/5 p-3 rounded-full">
-              <Activity size={20} color="black" />
+            <TouchableOpacity className="bg-white/5 p-3 rounded-full border border-white/10">
+              <Activity size={20} color="#FFF" />
             </TouchableOpacity>
           </View>
 
-          {/* AREA DI TEST - BOTTONE PER APRIRE IL POPUP ESERCIZIO */}
-          <View className="mb-8">
-            <Text className="text-black font-black uppercase text-[10px] tracking-[4px] mb-4 px-1">
-              Tester Dev
-            </Text>
-            
-            <View className="gap-y-3">
-              <TouchableOpacity 
-                onPress={() => setIsExerciseDetailVisible(true)}
-                className="bg-black py-4 px-6 rounded-[24px] flex-row items-center shadow-lg"
-              >
-                <Dumbbell size={20} color="#FF4500" className="mr-3" />
-                <View>
-                  <Text className="text-white font-black">Testa Popup Esercizio</Text>
-                  <Text className="text-gray-400 text-xs mt-1">Guarda il nuovo design glassmorphism</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                onPress={() => setIsLibraryVisible(true)}
-                className="bg-white border border-gray-200 py-4 px-6 rounded-[24px] flex-row items-center shadow-sm"
-              >
-                <Activity size={20} color="#000" className="mr-3" />
-                <View>
-                  <Text className="text-black font-black">Testa Libreria Esercizi</Text>
-                  <Text className="text-gray-500 text-xs mt-1">Tabella con FlatList e Traduzioni</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* MOTIVATIONAL QUOTE CARD */}
-          <View className="bg-black p-8 rounded-[40px] mb-8 shadow-2xl relative overflow-hidden">
-             <View className="absolute top-[-10] right-[-10] opacity-10">
+          {/* Sezione Quotation */}
+          <BlurView intensity={20} tint="dark" className="p-8 rounded-[40px] mb-8 border border-white/5 overflow-hidden relative">
+             <View className="absolute top-[-10] right-[-10] opacity-5">
                 <Quote size={120} color="white" />
              </View>
-             <Text className="text-[#00FF00] font-black uppercase text-[10px] tracking-[4px] mb-4">
+             <Text className="text-[#10B981] font-black uppercase text-[10px] tracking-[4px] mb-4">
                Daily Motivation
              </Text>
              <Text className="text-white text-2xl font-[1000] leading-tight tracking-tight">
                "STRENGTH DOES NOT COME FROM WINNING. YOUR STRUGGLES DEVELOP YOUR STRENGTHS."
              </Text>
              <View className="flex-row items-center mt-6">
-                <View className="bg-[#00FF00] w-8 h-[2px] mr-3" />
-                <Text className="text-white/40 font-bold uppercase text-[10px] tracking-widest">
+                <View className="bg-[#10B981] w-8 h-[2px] mr-3" />
+                <Text className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">
                   The Lab Protocol
                 </Text>
              </View>
-          </View>
+          </BlurView>
 
-          {/* ANIMAL LEVEL GAMIFICATION */}
-          <View className="bg-white/70 border border-black/5 rounded-[40px] p-8 mb-8 shadow-lg shadow-black/5">
+          {/* Sezione Livello Utente */}
+          <View className="bg-black/60 border border-white/5 rounded-[40px] p-8 mb-8 shadow-2xl">
             <View className="flex-row justify-between items-center mb-6">
               <View>
-                <Text className="text-black/40 font-black uppercase text-[10px] tracking-[4px]">
+                <Text className="text-gray-500 font-black uppercase text-[10px] tracking-[4px]">
                   Current Status
                 </Text>
-                <Text className="text-black text-3xl font-[1000] tracking-tighter mt-1">
+                <Text className="text-white text-3xl font-[1000] tracking-tighter mt-1 drop-shadow-md">
                   {animalLevel}
                 </Text>
               </View>
-              <View className="bg-black p-4 rounded-[24px]">
-                <Zap size={28} color="white" fill="white" />
+              <View className="bg-white/5 p-4 rounded-[24px] border border-white/10">
+                <Zap size={28} color="#10B981" fill="#10B981" />
               </View>
             </View>
 
             {/* PROGRESS BAR */}
-            <View className="h-4 bg-black/5 rounded-full overflow-hidden mb-3">
+            <View className="h-4 bg-white/5 rounded-full overflow-hidden mb-3 border border-white/5">
               <View 
-                className="h-full bg-black rounded-full" 
+                className="h-full bg-[#10B981] rounded-full shadow-lg shadow-green-900/50" 
                 style={{ width: `${progressToNext}%` }} 
               />
             </View>
             <View className="flex-row justify-between">
-              <Text className="text-black/30 font-bold text-[10px] uppercase">Level 12</Text>
-              <Text className="text-black font-black text-[10px] uppercase">25% to Golden Lion</Text>
+              <Text className="text-gray-500 font-bold text-[10px] uppercase">Level 12</Text>
+              <Text className="text-[#10B981] font-black text-[10px] uppercase">25% to Golden Lion</Text>
             </View>
           </View>
 
           {/* RECENT SESSIONS */}
           <View className="mb-10">
             <View className="flex-row justify-between items-end mb-6 px-1">
-              <Text className="text-black font-black uppercase text-[10px] tracking-[4px]">
+              <Text className="text-gray-400 font-black uppercase text-[10px] tracking-[4px]">
                 Recent Sessions
               </Text>
               <TouchableOpacity>
-                <Text className="text-black/40 font-black uppercase text-[10px] tracking-widest">View All</Text>
+                <Text className="text-[#10B981] font-black uppercase text-[10px] tracking-widest">View All</Text>
               </TouchableOpacity>
             </View>
 
             {[1, 2].map((i) => (
               <TouchableOpacity 
                 key={i}
-                className="bg-white/60 border border-black/5 rounded-[32px] p-6 mb-4 flex-row items-center shadow-sm"
+                className="bg-black border border-white/5 rounded-[32px] p-5 mb-4 flex-row items-center shadow-lg"
               >
-                <View className="bg-black/5 p-4 rounded-2xl mr-5">
-                  <Flame size={20} color="black" />
+                <View className="bg-[#10B981]/10 p-4 rounded-2xl mr-4 border border-[#10B981]/20">
+                  <Flame size={24} color="#10B981" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-black font-black text-lg tracking-tight">Push Protocol A</Text>
-                  <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-0.5">
+                  <Text className="text-white font-black text-lg tracking-tight">Push Protocol {i}</Text>
+                  <Text className="text-gray-500 font-bold text-[10px] uppercase tracking-widest mt-1">
                     Yesterday • 65 min • 320 kcal
                   </Text>
                 </View>
-                <ChevronRight size={18} color="#CCC" />
+                <ChevronRight size={20} color="#6B7280" />
               </TouchableOpacity>
             ))}
           </View>
-
-          <View className="h-24" />
         </ScrollView>
       </SafeAreaView>
 
-      {/* QUICK START FLOATING BUTTON */}
-      <TouchableOpacity 
-        className="absolute bottom-10 left-10 right-10 bg-black py-6 rounded-[30px] flex-row items-center justify-center shadow-2xl"
-        activeOpacity={0.9}
-      >
-        <Trophy size={20} color="#00FF00" className="mr-3" />
-        <Text className="text-white font-[1000] uppercase tracking-[4px] text-lg">
-          Start Training
-        </Text>
-      </TouchableOpacity>
-
-      {/* POPUP ESERCIZIO (Nascosto di default) */}
-      <ExerciseDetailModal 
-        visible={isExerciseDetailVisible} 
-        onClose={() => setIsExerciseDetailVisible(false)} 
-        exerciseName="Panca Piana Inclinata"
-        muscle="Petto Superiore"
-      />
-
-      {/* LIBRERIA ESERCIZI (Nascosta di default) */}
-      <ExerciseLibrary
-        visible={isLibraryVisible}
-        onClose={() => setIsLibraryVisible(false)}
-      />
+      {/* Tasto Start Workout Dinamico */}
+      <View className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/90 to-transparent pt-12">
+        <TouchableOpacity 
+          className="bg-black/90 py-5 rounded-full flex-row items-center justify-center shadow-2xl border border-white/10 backdrop-blur-md"
+          activeOpacity={0.9}
+        >
+          <Trophy size={18} color="#10B981" className="mr-3" />
+          <Text className="text-white font-[1000] uppercase tracking-[3px] text-sm">
+            Start Blank Workout
+          </Text>
+        </TouchableOpacity>
+      </View>
 
     </View>
   );
