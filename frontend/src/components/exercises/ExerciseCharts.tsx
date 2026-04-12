@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
 import { LineChart, BarChart } from 'react-native-gifted-charts';
+import { useTranslation } from 'react-i18next';
 
 interface ExerciseChartsProps {
   historyData: any[];
@@ -9,6 +10,7 @@ interface ExerciseChartsProps {
 type ChartType = '1RM' | 'Volume' | 'Reps' | 'Serie';
 
 export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
+  const { t } = useTranslation();
   const { width } = Dimensions.get('window');
   const [activeMetric, setActiveMetric] = useState<ChartType>('1RM');
 
@@ -16,9 +18,9 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
   if (!historyData || historyData.length < 2) {
     return (
       <View className="items-center justify-center py-6 mt-4 opacity-50">
-        <Text className="text-white font-bold mb-1">Dati Insufficienti per l'Analisi</Text>
+        <Text className="text-white font-bold mb-1">{t('exercises.insufficient_data')}</Text>
         <Text className="text-gray-500 text-xs text-center max-w-[250px]">
-          Allenalo per altre 2 sessioni per sbloccare l'evoluzione algoritmica di Volume e Progressi.
+          {t('exercises.train_more_to_unlock')}
         </Text>
       </View>
     );
@@ -91,10 +93,10 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
       
       {/* Toggles Container */}
       <View className="flex-row items-center justify-between mb-4 bg-black/40 p-1 rounded-full border border-white/5 mx-1">
-         <RenderTab metric="1RM" label="1RM" />
-         <RenderTab metric="Volume" label="Volume" />
-         <RenderTab metric="Reps" label="Reps" />
-         <RenderTab metric="Serie" label="Serie" />
+         <RenderTab metric="1RM" label={t('exercises.metrics.one_rm')} />
+         <RenderTab metric="Volume" label={t('exercises.metrics.volume')} />
+         <RenderTab metric="Reps" label={t('exercises.metrics.reps')} />
+         <RenderTab metric="Serie" label={t('exercises.metrics.sets')} />
       </View>
 
       <View className="bg-black/40 p-5 pt-8 rounded-[32px] border border-white/5 shadow-inner">

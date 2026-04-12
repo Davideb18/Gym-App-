@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   set: any; // Using exact from DraftExercise sets
@@ -19,6 +20,7 @@ export default function RoutineSetRow({
   updateSetField,
   removeSet
 }: Props) {
+  const { t } = useTranslation();
   return (
     <View className="flex-col bg-gray-50/80 rounded-2xl p-2 mb-2 border border-gray-100">
       <View className="flex-row items-center w-full">
@@ -29,7 +31,7 @@ export default function RoutineSetRow({
          >
            <Text className="text-black font-black text-sm text-center">{setIndex + 1}</Text>
            <Text className={`text-[8px] font-black uppercase mt-0.5 text-center px-0.5 tracking-wider ${set.setType === 'normal' ? 'text-gray-400' : 'text-[#FF3B30]'}`}>
-             {set.setType === 'normal' ? 'NORM' : set.setType.substring(0,4)}
+             {set.setType === 'normal' ? t('create_routine.set_types.normal') : t(`create_routine.set_types.${set.setType}`).substring(0,4)}
            </Text>
          </TouchableOpacity>
          
@@ -77,7 +79,7 @@ export default function RoutineSetRow({
       {set.setType === 'dropset' && (
         <View className="flex-row items-center mt-3 px-1 mb-1">
            <View className="flex-1 mr-2">
-              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">Drop (Volte)</Text>
+              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">{t('create_routine.set_fields.drops')}</Text>
               <TextInput 
                 value={set.dropsetDrops || ''}
                 onChangeText={(text) => updateSetField(exerciseLocalId, set.localId, 'dropsetDrops', text)}
@@ -87,7 +89,7 @@ export default function RoutineSetRow({
               />
            </View>
            <View className="flex-1">
-              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">% Riduzione</Text>
+              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">{t('create_routine.set_fields.reduction')}</Text>
               <TextInput 
                 value={set.dropsetPercent || ''}
                 onChangeText={(text) => updateSetField(exerciseLocalId, set.localId, 'dropsetPercent', text)}
@@ -102,7 +104,7 @@ export default function RoutineSetRow({
       {set.setType === 'cluster' && (
         <View className="flex-row items-center mt-3 px-1 mb-1">
            <View className="flex-1 mr-2">
-              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">Mini-sets</Text>
+              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">{t('create_routine.set_fields.mini_sets')}</Text>
               <TextInput 
                 value={set.clusterMiniSets || ''}
                 onChangeText={(text) => updateSetField(exerciseLocalId, set.localId, 'clusterMiniSets', text)}
@@ -112,7 +114,7 @@ export default function RoutineSetRow({
               />
            </View>
            <View className="flex-1">
-              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">Pausa (sec)</Text>
+              <Text className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-widest">{t('create_routine.set_fields.intra_rest')}</Text>
               <TextInput 
                 value={set.clusterIntraRest || ''}
                 onChangeText={(text) => updateSetField(exerciseLocalId, set.localId, 'clusterIntraRest', text)}
@@ -126,15 +128,15 @@ export default function RoutineSetRow({
             {/* SPIEGAZIONI TECNICHE AVANZATE SENZA INPUT EXTRA */}
       {set.setType === 'rest_pause' && (
         <View className="mt-3 px-2 mb-1">
-           <Text className="text-[11px] text-[#FF4500] font-bold mb-0.5">💡 Come fare il Rest-Pause:</Text>
-           <Text className="text-[11px] text-gray-500 font-medium leading-relaxed">Fai riposi brevissimi (10-15s) all'interno della stessa serie finché non raggiungi il totale delle ripetizioni target.</Text>
+           <Text className="text-[11px] text-[#FF4500] font-bold mb-0.5">{t('create_routine.tips.rest_pause_title')}</Text>
+           <Text className="text-[11px] text-gray-500 font-medium leading-relaxed">{t('create_routine.tips.rest_pause_body')}</Text>
         </View>
       )}
 
       {set.setType === 'myo_reps' && (
         <View className="mt-3 px-2 mb-1">
-           <Text className="text-[11px] text-[#FF4500] font-bold mb-0.5">💡 Come fare le Myo-Reps:</Text>
-           <Text className="text-[11px] text-gray-500 font-medium leading-relaxed">Esegui il set di attivazione (12-15 rep), fermati per 5 respiri profondi, poi esegui mini-set da 3-5 rep al cedimento.</Text>
+           <Text className="text-[11px] text-[#FF4500] font-bold mb-0.5">{t('create_routine.tips.myo_reps_title')}</Text>
+           <Text className="text-[11px] text-gray-500 font-medium leading-relaxed">{t('create_routine.tips.myo_reps_body')}</Text>
         </View>
       )}
 

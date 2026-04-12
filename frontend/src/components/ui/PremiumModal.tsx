@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Crown, CheckCircle2, X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -14,6 +15,7 @@ interface PremiumModalProps {
 }
 
 export default function PremiumModal({ visible, onClose, onUpgrade }: PremiumModalProps) {
+  const { t } = useTranslation();
   if (!visible) return null;
 
   return (
@@ -28,17 +30,17 @@ export default function PremiumModal({ visible, onClose, onUpgrade }: PremiumMod
               <Crown size={32} color="black" />
             </View>
             <Text className="text-white text-3xl font-black tracking-tighter uppercase">THE LAB PRO</Text>
-            <Text className="text-gray-400 text-xs font-bold uppercase tracking-[3px] mt-1">Unlock your limit</Text>
+            <Text className="text-gray-400 text-xs font-bold uppercase tracking-[3px] mt-1">{t('premium.subtitle')}</Text>
           </LinearGradient>
 
           {/* Points/Features */}
           <View className="p-8 gap-y-5">
             {[
-              "Schede di allenamento illimitate",
-              "Accesso a grafici di progressione",
-              "Timer di riposo personalizzabili",
-              "Predizione del carico con AI",
-              "Analisi delle esecuzioni"
+              t('premium.feature_routines'),
+              t('premium.feature_stats'),
+              t('premium.feature_ai'),
+              t('premium.feature_sets'),
+              t('premium.feature_vision')
             ].map((text, i) => (
               <View key={i} className="flex-row items-center">
                 <CheckCircle2 size={20} color="black" strokeWidth={3} />
@@ -54,11 +56,11 @@ export default function PremiumModal({ visible, onClose, onUpgrade }: PremiumMod
               className="bg-black py-5 rounded-2xl items-center shadow-lg"
               activeOpacity={0.8}
             >
-              <Text className="text-white font-black uppercase tracking-widest text-sm">Passa a PRO</Text>
+              <Text className="text-white font-black uppercase tracking-widest text-sm">{t('premium.subscribe')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity onPress={onClose} className="mt-4 items-center">
-              <Text className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Forse più tardi</Text>
+              <Text className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
 

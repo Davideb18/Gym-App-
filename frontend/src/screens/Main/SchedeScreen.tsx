@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Plus, Dumbbell, History, Users, Layout, ChevronRight } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../api/supabaseClient';
 import { useAuthStore } from '../../store/useAuthStore';
 import ExerciseLibrary from '../../components/exercises/ExerciseLibrary';
@@ -27,6 +28,7 @@ type WorkoutTemplateRow = Pick<WorkoutTemplate, 'id' | 'name' | 'description' | 
 
 export default function SchedeScreen() {
   const { session } = useAuthStore();
+  const { t } = useTranslation();
   const userId = session?.user?.id;
   const [isPremium, setIsPremium] = useState(false);
   const [isLoadingPremium, setIsLoadingPremium] = useState(false);
@@ -89,19 +91,19 @@ export default function SchedeScreen() {
 
   const handleDeleteRoutine = (templateId: string, templateName: string) => {
     Alert.alert(
-      'Elimina Scheda',
-      `Sei sicuro di voler eliminare definitivamente "${templateName}"?`,
+      t('workouts.delete_title'),
+      t('workouts.delete_confirm', { name: templateName }),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Elimina', 
+          text: t('common.delete'), 
           style: 'destructive',
           onPress: async () => {
             try {
               await WorkoutService.deleteTemplate(templateId, userId!);
               await refetchTemplates();
             } catch (err: any) {
-              Alert.alert('Errore', err?.message || 'Non è stato possibile eliminare la scheda.');
+              Alert.alert(t('common.error'), err?.message || t('workouts.delete_error'));
             }
           }
         }
@@ -138,11 +140,11 @@ export default function SchedeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#040404]">
+    <View className="flex-1 bg-black">
       <StatusBar style="light" />
       
-      {/* Sfondo HomeScreen */}
-      <View className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#10B981]/5 to-transparent opacity-80" />
+      {/* Sfondo Unificato Ibrido (Nero -> Grigio Chiaro) */}
+      <LinearGradient colors={['#171717', '#D1D5DB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
 
       <SafeAreaView className="flex-1">
         <ScrollView 
@@ -155,13 +157,13 @@ export default function SchedeScreen() {
           <View className="flex-row justify-between items-end mb-12">
             <View>
               <View className="flex-row items-center">
-                <Text className="text-white text-4xl font-black tracking-tighter">THE</Text>
+                <Text className="text-white text-3xl font-[1000] tracking-tighter">THE</Text>
                 <View className="ml-1 bg-[#10B981] px-1.5 py-0.5 rounded shadow-sm shadow-green-900/50">
-                  <Text className="text-black text-2xl font-black italic">LAB</Text>
+                  <Text className="text-black text-xl font-black italic">LAB</Text>
                 </View>
               </View>
               <Text className="text-gray-500 font-bold uppercase text-[10px] tracking-[3px] mt-1 ml-1">
-                Workout Templates
+                {t('workouts.templates_title')}
               </Text>
             </View>
             <TouchableOpacity 
@@ -183,14 +185,14 @@ export default function SchedeScreen() {
               <View className="bg-white/5 p-2 rounded-xl mb-2 border border-white/5">
                 <Dumbbell size={18} color="#10B981" />
               </View>
-              <Text className="text-white text-[10px] font-black uppercase tracking-widest">Custom</Text>
+              <Text className="text-white text-[10px] font-black uppercase tracking-widest">{t('workouts.custom')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity className="items-center bg-black/60 p-4 rounded-3xl border border-white/5 flex-1 shadow-lg">
               <View className="bg-white/5 p-2 rounded-xl mb-2 border border-white/5">
                 <Layout size={18} color="#3B82F6" />
               </View>
-              <Text className="text-white text-[10px] font-black uppercase tracking-widest">AI Gen</Text>
+              <Text className="text-white text-[10px] font-black uppercase tracking-widest">{t('workouts.ai_gen')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -201,23 +203,23 @@ export default function SchedeScreen() {
               <View className="bg-white/5 p-2 rounded-xl mb-2 border border-white/5">
                 <Users size={18} color="#8B5CF6" />
               </View>
-              <Text className="text-white text-[10px] font-black uppercase tracking-widest">Exercise</Text>
+              <Text className="text-white text-[10px] font-black uppercase tracking-widest">{t('workouts.exercise')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Lista delle Schede Create */}
           <View>
             <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mb-6 ml-1">
-              My Routines
+              {t('workouts.my_routines')}
             </Text>
 
             {isLoadingTemplates ? (
               <ActivityIndicator color="#10B981" />
             ) : isTemplatesError ? (
               <View className="bg-black/60 border border-red-500/20 rounded-[32px] p-6 mb-5 items-center">
-                  <Text className="text-red-400 font-bold text-center mb-4">Errore nel caricamento delle routine</Text>
+                  <Text className="text-red-400 font-bold text-center mb-4">Error loading routines</Text>
                   <TouchableOpacity onPress={() => refetchTemplates()} className="bg-red-500/20 px-4 py-2 rounded-xl border border-red-500/30" activeOpacity={0.8}>
-                    <Text className="text-red-400 font-bold">Riprova</Text>
+                    <Text className="text-red-400 font-bold">{t('common.retry')}</Text>
                   </TouchableOpacity>
                 </View>
             ) : (
@@ -252,7 +254,7 @@ export default function SchedeScreen() {
                     <Plus size={32} color="#fff" />
                   </View>
                   <Text className="text-gray-400 text-center font-bold text-sm uppercase tracking-widest leading-loose">
-                    {templates?.length === 0 ? "No routines found.\nTap + to build your lab" : "Add New Routine"}
+                    {templates?.length === 0 ? t('workouts.no_routines') : t('workouts.add_new')}
                   </Text>
                 </TouchableOpacity>
               </View>

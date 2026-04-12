@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Animated, Dimensions, Activit
 import { BlurView } from 'expo-blur';
 import { X, PlaySquare, History, FileText, Save, Info } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { WorkoutService } from '../../api/workoutService';
 import { useExerciseModal } from '../../store/useExerciseModal';
 import ExerciseVideoPlayer from './ExerciseVideoPlayer';
@@ -11,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ExerciseDetailModal() {
   const { isOpen, selectedExerciseId, closeModal } = useExerciseModal();
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<'descrizione' | 'history'>('descrizione');
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
@@ -43,9 +45,9 @@ export default function ExerciseDetailModal() {
 
   if (!isOpen) return null;
 
-  const exName = baseInfo?.name || 'Caricamento...';
-  const exMuscle = baseInfo?.target_muscle_group || 'Misto';
-  const exEquipment = baseInfo?.equipment || 'Bodyweight';
+  const exName = baseInfo?.name || t('common.loading');
+  const exMuscle = baseInfo?.target_muscle_group || t('exercises.target_muscle_group_mixed');
+  const exEquipment = baseInfo?.equipment || t('exercises.equipment_bodyweight');
   const instructions = baseInfo?.instructions || '';
 
   const handleNotesChange = (sessionId: string, val: string) => {
@@ -64,10 +66,20 @@ export default function ExerciseDetailModal() {
     <View className="absolute inset-0 z-[105] elevation-[105]">
       <TouchableOpacity activeOpacity={1} onPress={closeModal} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center' }} />
       
-      <View className="absolute bottom-0 w-full h-[93%] rounded-t-[40px] overflow-hidden shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
-        <BlurView intensity={100} tint="dark" className="flex-1 border-t border-x border-white/10">
-          
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <View style={{ position: 'absolute', bottom: 0, width: '100%', height: '93%', borderTopLeftRadius: 40, borderTopRightRadius: 40, overflow: 'hidden' }}>
+        <LinearGradient
+          colors={['#171717', '#D1D5DB']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', width: '100%', height: '100%' }}
+        />
+        <LinearGradient
+          colors={['rgba(16,185,129,0.1)', 'transparent']}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120 }}
+        />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+        
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
             
             <View className="w-full items-center pt-3 pb-2">
                 <View className="w-12 h-1.5 bg-white/30 rounded-full" />
@@ -106,7 +118,7 @@ export default function ExerciseDetailModal() {
                   >
                     <Info size={14} color={activeTab === 'descrizione' ? '#10B981' : '#6B7280'} style={{ marginRight: 6 }} />
                     <Text className={`font-black uppercase tracking-widest text-[10px] ${activeTab === 'descrizione' ? 'text-white' : 'text-gray-500'}`}>
-                      Descrizione
+                      {t('exercises.tab_description')}
                     </Text>
                   </TouchableOpacity>
 
@@ -116,7 +128,7 @@ export default function ExerciseDetailModal() {
                   >
                     <History size={14} color={activeTab === 'history' ? '#10B981' : '#6B7280'} style={{ marginRight: 6 }} />
                     <Text className={`font-black uppercase tracking-widest text-[10px] ${activeTab === 'history' ? 'text-white' : 'text-gray-500'}`}>
-                      Storico
+                      {t('exercises.tab_history')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -129,11 +141,11 @@ export default function ExerciseDetailModal() {
                   <ExerciseVideoPlayer videoUrl={mockupVideoUrl} />
                   
                   <View className="mt-8 bg-black/40 rounded-[32px] p-6 border border-white/5 shadow-inner">
-                    <Text className="text-white text-xl font-black mb-4 tracking-tight">Istruzioni d'Esecuzione</Text>
+                    <Text className="text-white text-xl font-black mb-4 tracking-tight">{t('exercises.instructions_title')}</Text>
                     <Text className="text-gray-400 text-sm leading-6">
                       {instructions && instructions.trim().length > 0
                         ? instructions
-                        : 'Manca la documentazione per questo esercizio. Focus sulla contrazione e discesa lenta (Tempo 3-0-1-0).'}
+                        : t('exercises.no_instructions')}
                     </Text>
                   </View>
 
@@ -156,17 +168,17 @@ export default function ExerciseDetailModal() {
                          >
                            <View className="flex-row justify-between items-center mb-4 pb-4 border-b border-white/5">
                              <Text className="text-white font-black text-lg">
-                               {new Date(session.completed_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                               {new Date(session.completed_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' })}
                              </Text>
                              <View className="bg-[#10B981]/20 px-3 py-1.5 rounded-full border border-[#10B981]/30">
-                               <Text className="text-[#10B981] font-bold text-xs uppercase tracking-widest">Sessione</Text>
+                               <Text className="text-[#10B981] font-bold text-xs uppercase tracking-widest">{t('exercises.session_label')}</Text>
                              </View>
                            </View>
 
                            <View className="flex-row justify-between items-center mb-3 px-2">
-                             <Text className="text-gray-500 font-bold w-12 text-center text-xs uppercase tracking-widest">Set</Text>
-                             <Text className="text-gray-500 font-bold flex-1 text-center text-xs uppercase tracking-widest">Kg</Text>
-                             <Text className="text-gray-500 font-bold flex-1 text-center text-xs uppercase tracking-widest">Reps</Text>
+                             <Text className="text-gray-500 font-bold w-12 text-center text-xs uppercase tracking-widest">{t('exercises.set_label')}</Text>
+                             <Text className="text-gray-500 font-bold flex-1 text-center text-xs uppercase tracking-widest">{t('exercises.weight_label')}</Text>
+                             <Text className="text-gray-500 font-bold flex-1 text-center text-xs uppercase tracking-widest">{t('exercises.reps_label')}</Text>
                            </View>
 
                            {session.sets.map((setItem: any) => (
@@ -190,13 +202,13 @@ export default function ExerciseDetailModal() {
                            <View className="mt-4 pt-4 border-t border-white/5">
                              <View className="flex-row items-center mb-2 px-2">
                                 <FileText size={14} color="#9CA3AF" />
-                                <Text className="text-gray-400 text-xs font-bold ml-1.5 uppercase tracking-widest">Appunti</Text>
+                                <Text className="text-gray-400 text-xs font-bold ml-1.5 uppercase tracking-widest">{t('exercises.notes_label')}</Text>
                              </View>
                              <View className="bg-black/40 rounded-[20px] p-3 border border-white/5 flex-row items-end">
                                <TextInput
                                  className="flex-1 text-white font-medium text-sm pt-0 pb-0"
                                  multiline
-                                 placeholder="Es. 'Ottima spinta ma polso dolorante'"
+                                 placeholder={t('exercises.notes_placeholder')}
                                  placeholderTextColor="#666"
                                  value={sessionNotes}
                                  onChangeText={(val) => handleNotesChange(session.session_id, val)}
@@ -220,16 +232,15 @@ export default function ExerciseDetailModal() {
                        <View className="bg-white/5 w-16 h-16 rounded-full items-center justify-center mb-4 border border-white/10">
                          <History size={24} color="#666" />
                        </View>
-                       <Text className="text-white font-black text-lg mb-1 tracking-tight">Nessun log storico</Text>
-                       <Text className="text-gray-500 text-xs text-center">Registra le tue performance in allenamento per popolare questi dati.</Text>
+                       <Text className="text-white font-black text-lg mb-1 tracking-tight">{t('exercises.no_history_title')}</Text>
+                       <Text className="text-gray-500 text-xs text-center">{t('exercises.no_history_subtitle')}</Text>
                      </View>
                    )}
                  </View>
               )}
             </ScrollView>
           </KeyboardAvoidingView>
-        </BlurView>
+        </View>
       </View>
-    </View>
   );
 }

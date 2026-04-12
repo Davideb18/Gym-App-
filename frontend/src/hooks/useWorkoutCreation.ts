@@ -1,5 +1,5 @@
-
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Exercise, SetType, WorkoutTemplate } from '../../../shared/types';
 
 // struttura dati che contiene un set in fase di creazione della scheda
@@ -37,6 +37,7 @@ const buildEmptySet = (): DraftSet => ({
 
 // hook che gestisce lo stato della creazione della scheda
 export function useWorkoutCreation() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [exercises, setExercises] = useState<DraftExercise[]>([]);
@@ -136,15 +137,15 @@ export function useWorkoutCreation() {
   // se qualcosa non va o null se tutto è ok
   const validate = () => {
     // se il nome della scheda è vuoto o contiene solo spazi, restituisci un messaggio di errore
-    if (!name.trim()) return 'Inserisci il nome della scheda';
+    if (!name.trim()) return t('create_routine.error_name_required');
     // se non ci sono esercizi nella scheda, restituisci un messaggio di errore
-    if (exercises.length === 0) return 'Aggiungi almeno un esercizio';
+    if (exercises.length === 0) return t('create_routine.error_at_least_one_exercise');
 
     // per ogni esercizio, controlla se ha almeno un set 
     // Ora permettiamo che i campi reps e intensity siano vuoti!
     for (const ex of exercises) {
       if (ex.sets.length === 0) {
-        return `Aggiungi almeno un set per ${ex.exercise.name}`;
+        return t('create_routine.error_at_least_one_set', { name: ex.exercise.name });
       }
     }
 

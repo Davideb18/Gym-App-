@@ -1,6 +1,6 @@
-import React from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Lock, Unlock} from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { SetType } from '../../../../../shared/types';
 
 export const SET_TYPES: { label: string, value: SetType, premium: boolean }[] = [
@@ -22,6 +22,7 @@ interface Props {
 }
 
 export default function SetTypeSelectorModal({ visible, onClose, onSelect, isPremium }: Props) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity 
@@ -31,7 +32,7 @@ export default function SetTypeSelectorModal({ visible, onClose, onSelect, isPre
       >
         <View className="bg-white rounded-[32px] overflow-hidden shadow-2xl">
           <View className="p-6 border-b border-gray-100 bg-gray-50">
-            <Text className="text-xl font-black text-black text-center tracking-tight">Tipologia Serie</Text>
+            <Text className="text-xl font-black text-black text-center tracking-tight">{t('create_routine.set_types.title')}</Text>
           </View>
           <ScrollView style={{ maxHeight: 380 }}>
             {SET_TYPES.map((type, idx) => (
@@ -42,7 +43,7 @@ export default function SetTypeSelectorModal({ visible, onClose, onSelect, isPre
                 className={`flex-row justify-between items-center px-6 py-5 ${idx < SET_TYPES.length - 1 ? 'border-b border-gray-50' : ''}`}
               >
                 <Text className={`text-lg font-bold ${type.premium && !isPremium ? 'text-gray-400' : 'text-black'}`}>
-                  {type.label}
+                  {t(`difficulty.${type.value}`)}
                 </Text>
                 
                 {type.premium && (
@@ -53,7 +54,7 @@ export default function SetTypeSelectorModal({ visible, onClose, onSelect, isPre
                       <Lock size={12} color="#000" />
                     )}
                     <Text className={`text-[10px] font-black uppercase tracking-widest ml-1 ${isPremium ? 'text-white' : 'text-black'}`}>
-                      {isPremium ? 'Sbloccato' : 'Premium'}
+                      {isPremium ? t('create_routine.set_types.unlocked') : t('create_routine.set_types.premium')}
                     </Text>
                   </View>
                 )}

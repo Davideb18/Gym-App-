@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Timer, X, Check, ChevronUp } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useActiveWorkout } from '../../store/useActiveWorkout';
 import { useRestTimer } from '../../store/useRestTimer';
 import { useExerciseModal } from '../../store/useExerciseModal';
@@ -11,6 +12,7 @@ interface SmartWorkoutWidgetProps {
   onPressExpand: () => void;
 }
 export default function SmartWorkoutWidget({ onPressExpand }: SmartWorkoutWidgetProps) {
+  const { t } = useTranslation();
   const { isActive: workoutActive, exercises, updateSet, toggleSetComplete } = useActiveWorkout();
   const { isActive: timerActive, timeLeft, addTime, reduceTime, skipTimer } = useRestTimer();
   const { openExercise } = useExerciseModal();
@@ -91,7 +93,7 @@ export default function SmartWorkoutWidget({ onPressExpand }: SmartWorkoutWidget
                       <Timer size={20} color="#60A5FA" />
                     </View>
                     <View>
-                      <Text className="text-gray-400 text-[10px] uppercase font-bold tracking-widest">Recupero</Text>
+                      <Text className="text-gray-400 text-[10px] uppercase font-bold tracking-widest">{t('active_workout.rest')}</Text>
                       <Text className="text-white text-3xl font-black font-mono tracking-tighter -mt-1">{restString}</Text>
                     </View>
                  </View>
@@ -113,17 +115,17 @@ export default function SmartWorkoutWidget({ onPressExpand }: SmartWorkoutWidget
               {nextExercise && nextSet && (
                  <View className="bg-black/50 rounded-2xl p-3 flex-row items-center justify-between border border-white/5">
                     <View className="flex-1 pr-2">
-                      <Text className="text-gray-500 text-[10px] uppercase font-black tracking-widest mb-0.5">Up Next</Text>
+                      <Text className="text-gray-500 text-[10px] uppercase font-black tracking-widest mb-0.5">{t('active_workout.next')}</Text>
                       <Text className="text-white font-bold text-sm" numberOfLines={1}>{nextExercise.exercise_name}</Text>
                     </View>
                     <View className="items-end">
                       <View className={`px-2 py-1 rounded-md border ${getSetColor(nextSet.set_type).split(' ')[0]} ${getSetColor(nextSet.set_type).split(' ')[2]}`}>
                         <Text className={`text-[9px] uppercase font-black tracking-wider ${getSetColor(nextSet.set_type).split(' ')[1]}`}>
-                          Set {nextSet.set_number} • {nextSet.set_type}
+                          {t('exercises.set_label')} {nextSet.set_number} • {t(`difficulty.${nextSet.set_type}`)}
                         </Text>
                       </View>
                       <Text className="text-gray-400 text-xs font-bold mt-1">
-                        {nextSet.target_reps || '-'} reps @ {nextSet.target_weight || '-'} kg
+                        {nextSet.target_reps || '-'} {t('exercises.reps_label').toLowerCase()} @ {nextSet.target_weight || '-'} {t('exercises.weight_label').toLowerCase()}
                       </Text>
                     </View>
                  </View>
@@ -141,14 +143,14 @@ export default function SmartWorkoutWidget({ onPressExpand }: SmartWorkoutWidget
                    <View className="flex-row items-center mb-1">
                      <View className={`px-2 py-0.5 rounded-md border ${getSetColor(currentSet.set_type).split(' ')[0]} ${getSetColor(currentSet.set_type).split(' ')[2]}`}>
                         <Text className={`text-[8px] uppercase font-black tracking-wider ${getSetColor(currentSet.set_type).split(' ')[1]}`}>
-                          {currentSet.set_type} • Set {currentSet.set_number}
+                          {t(`difficulty.${currentSet.set_type}`)} • {t('exercises.set_label')} {currentSet.set_number}
                         </Text>
                      </View>
                    </View>
                  )}
                  <View>
                    <Text className="text-white font-black text-xl uppercase tracking-tighter mb-2" numberOfLines={1}>
-                     {currentExercise ? currentExercise.exercise_name : 'Finito!'}
+                     {currentExercise ? currentExercise.exercise_name : t('active_workout.finished')}
                    </Text>
                  </View>
 
@@ -164,7 +166,7 @@ export default function SmartWorkoutWidget({ onPressExpand }: SmartWorkoutWidget
                             value={currentSet.real_weight ? String(currentSet.real_weight) : ''}
                             onChangeText={(val) => updateSet(currentExercise!.id, currentSet!.id, 'real_weight', parseFloat(val) || 0)}
                          />
-                         <Text className="text-gray-500 font-bold text-[10px] uppercase tracking-widest ml-1 mr-1">KG</Text>
+                         <Text className="text-gray-500 font-bold text-[10px] uppercase tracking-widest ml-1 mr-1">{t('exercises.weight_label')}</Text>
                       </View>
 
                       <View className="flex-row items-center bg-black/50 rounded-xl border border-white/10 px-2 py-1.5 focus-within:border-white/20 shadow-inner">
@@ -176,7 +178,7 @@ export default function SmartWorkoutWidget({ onPressExpand }: SmartWorkoutWidget
                             value={currentSet.real_reps ? String(currentSet.real_reps) : ''}
                             onChangeText={(val) => updateSet(currentExercise!.id, currentSet!.id, 'real_reps', parseInt(val, 10) || 0)}
                          />
-                         <Text className="text-gray-500 font-bold text-[10px] uppercase tracking-widest ml-1 mr-1">Reps</Text>
+                         <Text className="text-gray-500 font-bold text-[10px] uppercase tracking-widest ml-1 mr-1">{t('exercises.reps_label')}</Text>
                       </View>
                    </View>
                  )}

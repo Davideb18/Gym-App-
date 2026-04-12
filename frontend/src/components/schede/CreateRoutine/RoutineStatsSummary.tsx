@@ -1,5 +1,5 @@
-import React from 'react';
 import { View, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { DraftExercise } from '../../../hooks/useWorkoutCreation';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
 }
 
 export default function RoutineStatsSummary({ exercises }: Props) {
+  const { t } = useTranslation();
   const totalSets = exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
   const workingSets = exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.setType !== 'warmup').length, 0);
     const estimatedTimeSeconds = exercises.reduce((acc, ex) => {
@@ -25,15 +26,15 @@ export default function RoutineStatsSummary({ exercises }: Props) {
   return (
     <View className="px-5 mb-5 flex-row justify-between">
       <View className="bg-white/80 px-3 py-3 rounded-2xl flex-1 mr-2 border border-black/5 items-center shadow-sm shadow-black/5">
-        <Text className="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-widest">Tempo Stima</Text>
+        <Text className="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-widest">{t('create_routine.estimated_time')}</Text>
         <Text className="text-black font-black text-lg">{estimatedTimeMinutes} min</Text>
       </View>
       <View className="bg-white/80 px-3 py-3 rounded-2xl flex-1 mr-2 border border-black/5 items-center shadow-sm shadow-black/5">
-        <Text className="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-widest">Serie Tot.</Text>
+        <Text className="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-widest">{t('create_routine.total_sets_label')}</Text>
         <Text className="text-black font-black text-lg">{totalSets}</Text>
       </View>
       <View className="bg-white/80 px-3 py-3 rounded-2xl flex-1 border border-black/5 items-center shadow-sm shadow-black/5">
-        <Text className="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-widest">Allenanti</Text>
+        <Text className="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-widest">{t('create_routine.working_sets_label')}</Text>
         <Text className="text-black font-black text-lg">{workingSets}</Text>
       </View>
     </View>

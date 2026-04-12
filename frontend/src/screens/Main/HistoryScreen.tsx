@@ -1,194 +1,197 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, FlatList, TouchableOpacity, ActivityIndicator, Modal, Dimensions, ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Calendar as CalendarIcon, ChevronRight, Clock, Dumbbell } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Clock, Dumbbell, X } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
-
+import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/useAuthStore';
 import { WorkoutService } from '../../api/workoutService';
 
+const SW = Dimensions.get('window').width;
+const ITEM_W = 58, ITEM_GAP = 10, ITEM_TOTAL = ITEM_W + ITEM_GAP;
+const SIDE_PAD = (SW - ITEM_W) / 2;
+const PAST = 60, FUT = 14, TODAY_IDX = PAST, TOTAL = PAST + 1 + FUT;
+
+const ALL_DAYS: Date[] = Array.from({ length: TOTAL }, (_, i) => {
+  const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (PAST - i)); return d;
+});
+
 export default function HistoryScreen() {
   const { user } = useAuthStore();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { t, i18n } = useTranslation();
+  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const [selIdx, setSelIdx] = useState(TODAY_IDX);
+  const [calOpen, setCalOpen] = useState(false);
+  const [calMonth, setCalMonth] = useState({ y: today.getFullYear(), m: today.getMonth() });
+  const flatRef = useRef<FlatList<Date>>(null);
 
-  const { data: sessions, isLoading, error } = useQuery({
+  const selDate = ALL_DAYS[selIdx];
+
+  const { data: sessions, isLoading } = useQuery({
     queryKey: ['recentSessions', user?.id],
     queryFn: () => WorkoutService.getRecentSessions(user!.id),
     enabled: !!user?.id,
   });
 
-  // Genera gli ultimi 14 giorni per il calendario orizzontale
-  const generateDays = () => {
-    const days = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(d);
-    }
-    return days;
-  };
+  const workoutSet = useMemo(() => new Set(
+    sessions?.map((s: any) => { const d = new Date(s.completed_at || s.started_at); d.setHours(0,0,0,0); return d.toDateString(); }) ?? []
+  ), [sessions]);
 
-  const calendarDays = generateDays();
+  const daySessions = useMemo(() =>
+    sessions?.filter((s: any) => { const d = new Date(s.completed_at || s.started_at); d.setHours(0,0,0,0); return d.toDateString() === selDate.toDateString(); }) ?? []
+  , [sessions, selDate]);
 
-  // Filtra le sessioni in base al giorno selezionato
-  const selectedSessions = sessions?.filter((s: any) => {
-    const d = new Date(s.completed_at || s.started_at);
+  const scrollTo = useCallback((idx: number, animated = true) => {
+    flatRef.current?.scrollToOffset({ offset: idx * ITEM_TOTAL, animated });
+  }, []);
+
+  useEffect(() => { const t = setTimeout(() => scrollTo(TODAY_IDX, false), 80); return () => clearTimeout(t); }, []);
+
+  const selectDay = useCallback((idx: number) => { setSelIdx(idx); scrollTo(idx); }, [scrollTo]);
+  const onScrollEnd = useCallback((e: any) => {
+    setSelIdx(Math.max(0, Math.min(Math.round(e.nativeEvent.contentOffset.x / ITEM_TOTAL), TOTAL - 1)));
+  }, []);
+
+  const firstDay = new Date(calMonth.y, calMonth.m, 1).getDay();
+  const startOff = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInM = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
+  const prevCal = () => setCalMonth(p => p.m === 0 ? { y: p.y-1, m: 11 } : { y: p.y, m: p.m-1 });
+  const nextCal = () => setCalMonth(p => p.m === 11 ? { y: p.y+1, m: 0 } : { y: p.y, m: p.m+1 });
+
+  const renderDay = useCallback(({ item, index }: ListRenderItemInfo<Date>) => {
+    const sel = index === selIdx, isToday = index === TODAY_IDX, fut = index > TODAY_IDX;
+    const hasWo = workoutSet.has(item.toDateString());
     return (
-      d.getDate() === selectedDate.getDate() &&
-      d.getMonth() === selectedDate.getMonth() &&
-      d.getFullYear() === selectedDate.getFullYear()
+      <TouchableOpacity onPress={() => selectDay(index)} activeOpacity={0.7} style={{ width: ITEM_W, marginRight: ITEM_GAP, height: sel ? 88 : 72, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: sel ? '#10B981' : fut ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: sel ? '#10B981' : 'rgba(255,255,255,0.08)' }}>
+        <Text style={{ color: sel ? 'rgba(0,0,0,0.5)' : '#6B7280', fontSize: 9, fontWeight: '800', textTransform: 'uppercase' }}>{item.toLocaleDateString(i18n.language, { weekday: 'short' })}</Text>
+        <Text style={{ color: sel ? '#000' : isToday ? '#10B981' : fut ? '#374151' : '#FFF', fontSize: sel ? 26 : 20, fontWeight: '900', marginVertical: 2 }}>{item.getDate()}</Text>
+        <View style={{ height: 7, alignItems: 'center', justifyContent: 'center' }}>
+          {hasWo && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: sel ? '#000' : '#10B981' }} />}
+        </View>
+      </TouchableOpacity>
     );
-  }) || [];
+  }, [selIdx, workoutSet, selectDay]);
 
-  // Mappa di tutti i giorni con allenamenti (per i pallini)
-  const workoutDatesMap = new Set(
-    sessions?.map((s: any) => {
-      const d = new Date(s.completed_at || s.started_at);
-      return d.toDateString();
-    }) || []
-  );
+  const getItemLayout = useCallback((_: any, i: number) => ({ length: ITEM_TOTAL, offset: i * ITEM_TOTAL, index: i }), []);
 
   return (
-    <View className="flex-1 bg-[#0A0A0A]">
+    <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      
-      {/* Sfondo HomeScreen */}
-      <View className="absolute top-0 right-[-50] w-64 h-64 bg-blue-500/20 rounded-full blur-[100px]" />
-      <View className="absolute bottom-[20%] left-[-50] w-72 h-72 bg-[#10B981]/10 rounded-full blur-[120px]" />
-
-      <SafeAreaView className="flex-1">
-        
-        {/* Intestazione */}
-        <View className="px-5 pt-8 pb-4 flex-row justify-between items-center z-10">
+      <LinearGradient colors={['#171717', '#D1D5DB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+      <SafeAreaView style={{ flex: 1 }}>
+        <View className="flex-row justify-between items-center px-5 pt-7 pb-3">
           <View className="flex-row items-center">
             <Text className="text-white text-3xl font-[1000] tracking-tighter">THE</Text>
-            <View className="ml-1 bg-[#10B981] px-1.5 py-0.5 rounded shadow-sm shadow-green-900/50">
-              <Text className="text-black text-xl font-black italic">LAB</Text>
-            </View>
+            <View className="ml-1 bg-[#10B981] px-1.5 py-0.5 rounded"><Text className="text-black text-xl font-black italic">LAB</Text></View>
           </View>
-          <View className="bg-white/10 p-3 rounded-full border border-white/5">
-            <CalendarIcon size={20} color="#FFF" />
+          {selIdx !== TODAY_IDX && (
+            <TouchableOpacity onPress={() => selectDay(TODAY_IDX)} className="bg-[#10B981]/15 px-4 py-1.5 rounded-full border border-[#10B981]/30">
+              <Text className="text-[#10B981] text-[11px] font-black uppercase tracking-widest">{t('common.today')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View className="flex-row justify-between items-center px-5 mb-3">
+          <TouchableOpacity onPress={() => { setCalMonth({ y: selDate.getFullYear(), m: selDate.getMonth() }); setCalOpen(true); }} className="flex-row items-center" activeOpacity={0.7}>
+            <Text className="text-white text-xl font-black tracking-tight mr-1">{selDate.toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' })}</Text>
+            <ChevronRight size={18} color="#10B981" />
+          </TouchableOpacity>
+          <View className="flex-row gap-x-2">
+            <TouchableOpacity onPress={() => selIdx > 0 && selectDay(selIdx - 1)} style={{ opacity: selIdx === 0 ? 0.2 : 1 }} className="bg-white/10 rounded-full p-1.5 border border-white/10"><ChevronLeft size={18} color="#FFF" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => selIdx < TOTAL - 1 && selectDay(selIdx + 1)} style={{ opacity: selIdx === TOTAL - 1 ? 0.2 : 1 }} className="bg-white/10 rounded-full p-1.5 border border-white/10"><ChevronRight size={18} color="#FFF" /></TouchableOpacity>
           </View>
         </View>
 
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          
-          <Text className="px-5 text-gray-500 text-[10px] font-black uppercase tracking-[4px] mb-6">
-            Training History
+        <FlatList ref={flatRef} data={ALL_DAYS} keyExtractor={(_, i) => i.toString()} renderItem={renderDay} horizontal showsHorizontalScrollIndicator={false} snapToInterval={ITEM_TOTAL} decelerationRate="fast" getItemLayout={getItemLayout} contentContainerStyle={{ paddingHorizontal: SIDE_PAD }} onMomentumScrollEnd={onScrollEnd} removeClippedSubviews maxToRenderPerBatch={20} windowSize={10} initialNumToRender={20} style={{ flexGrow: 0, marginBottom: 8 }} />
+
+        <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+          <Text className="text-white text-2xl font-[1000] tracking-tighter mb-4">
+            {selIdx === TODAY_IDX ? t('common.today') : selDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'short', day: 'numeric' })}
           </Text>
+          {isLoading ? <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 40 }} />
+          : selIdx > TODAY_IDX ? (
+            <View className="items-center mt-10"><Text className="text-4xl mb-3">🔮</Text><Text className="text-gray-400 font-bold text-lg">{t('history.future_title')}</Text><Text className="text-gray-500 text-sm mt-1 text-center">{t('history.future_subtitle')}</Text></View>
+          ) : daySessions.length === 0 ? (
+            <View className="items-center mt-10"><Dumbbell size={48} color="#4B5563" /><Text className="text-gray-400 font-bold text-lg mt-3">{t('history.rest_day')}</Text><Text className="text-gray-500 text-sm mt-1">{t('history.no_workouts')}</Text></View>
+          ) : daySessions.map((s: any) => {
+            const mins = Math.floor((s.duration_seconds || 0) / 60);
+            const vol = s.total_volume || 0, sets = s.performed_sets?.length || 0;
+            const name = s.workout_templates?.name || 'Freestyle';
+            return (
+              <TouchableOpacity key={s.id} className="bg-black/40 border border-white/10 rounded-[32px] overflow-hidden mb-4">
+                <View className="flex-row items-center p-5 pb-4 border-b border-white/5">
+                  <View className="bg-blue-500/10 p-3 rounded-2xl mr-4 border border-blue-500/20"><Dumbbell size={24} color="#3B82F6" /></View>
+                  <View className="flex-1"><Text className="text-white font-black text-lg tracking-tight" numberOfLines={1}>{name}</Text><Text className="text-gray-500 font-bold text-[10px] uppercase tracking-widest mt-1">{t('history.completed')}</Text></View>
+                </View>
+                <View className="flex-row justify-between items-center px-6 py-4">
+                  <View className="items-center"><Clock size={14} color="#6B7280" /><Text className="text-white font-black text-sm mt-1">{mins} min</Text><Text className="text-gray-500 font-bold text-[9px] uppercase tracking-widest">{t('history.time')}</Text></View>
+                  <View className="w-px h-7 bg-white/10" />
+                  <View className="items-center"><Dumbbell size={14} color="#6B7280" /><Text className="text-white font-black text-sm mt-1">{vol.toLocaleString()} kg</Text><Text className="text-gray-500 font-bold text-[9px] uppercase tracking-widest">{t('history.volume')}</Text></View>
+                  <View className="w-px h-7 bg-white/10" />
+                  <View className="items-center"><Text className="text-white font-black text-sm">{sets}</Text><Text className="text-gray-500 font-bold text-[9px] uppercase tracking-widest">{t('history.sets')}</Text></View>
+                </View>
+                <View className="flex-row justify-between items-center px-6 py-3 border-t border-white/5">
+                  <Text className="text-[#10B981] font-bold text-xs uppercase tracking-widest">{t('history.view_details')}</Text>
+                  <ChevronRight size={16} color="#10B981" />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
 
-          {/* Calendario settimanale */}
-          <View className="mb-8">
-            <View className="px-5 mb-4 flex-row items-center justify-between">
-               <Text className="text-white font-black text-lg tracking-widest">
-                 {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-               </Text>
-               <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
-                 <Text className="text-[#10B981] font-bold text-xs uppercase">Today</Text>
-               </TouchableOpacity>
+      <Modal visible={calOpen} animationType="slide" transparent onRequestClose={() => setCalOpen(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setCalOpen(false)} />
+          <View style={{ borderTopLeftRadius: 40, borderTopRightRadius: 40, overflow: 'hidden', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 44 }}>
+            <LinearGradient colors={['#171717', '#D1D5DB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+            <LinearGradient colors={['rgba(16,185,129,0.25)', 'transparent']} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 100 }} />
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(16,185,129,0.5)' }} />
+            <View className="w-10 h-1.5 bg-white/30 rounded-full self-center mb-5" />
+            <View className="flex-row justify-between items-center mb-6">
+              <TouchableOpacity onPress={prevCal} className="bg-white/10 rounded-full p-1.5 border border-white/10"><ChevronLeft size={20} color="#FFF" /></TouchableOpacity>
+              <Text className="text-white text-lg font-black">{new Date(calMonth.y, calMonth.m).toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' })}</Text>
+              <TouchableOpacity onPress={nextCal} className="bg-white/10 rounded-full p-1.5 border border-white/10"><ChevronRight size={20} color="#FFF" /></TouchableOpacity>
             </View>
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5" contentContainerStyle={{ paddingRight: 40 }} snapToAlignment="end">
-              {calendarDays.map((dateObj, index) => {
-                const isSelected = dateObj.toDateString() === selectedDate.toDateString();
-                const hasWorkout = workoutDatesMap.has(dateObj.toDateString());
-
+            <View className="flex-row mb-2">
+              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                <Text key={d} style={{ width: (SW-40)/7, textAlign: 'center' }} className="text-gray-500 text-[10px] font-black uppercase">{d}</Text>
+              ))}
+            </View>
+            <View className="flex-row flex-wrap">
+              {Array.from({ length: startOff }).map((_, i) => <View key={`e${i}`} style={{ width: (SW-40)/7, height: 48 }} />)}
+              {Array.from({ length: daysInM }).map((_, i) => {
+                const day = i + 1;
+                const cell = new Date(calMonth.y, calMonth.m, day); cell.setHours(0,0,0,0);
+                const isTod = cell.toDateString() === today.toDateString();
+                const isSel = cell.toDateString() === selDate.toDateString();
+                const hasWo = workoutSet.has(cell.toDateString());
+                const fut = cell > today;
                 return (
-                  <TouchableOpacity 
-                    key={index} 
-                    onPress={() => setSelectedDate(dateObj)}
-                    className={`w-14 items-center justify-center py-3 rounded-[20px] mr-3 border ${isSelected ? 'bg-[#10B981] border-[#10B981] shadow-lg shadow-green-900/50' : 'bg-white/5 border-white/5'}`}
+                  <TouchableOpacity key={day} disabled={fut}
+                    onPress={() => {
+                      const diff = Math.round((today.getTime() - cell.getTime()) / 86400000);
+                      const idx = TODAY_IDX - diff;
+                      if (idx >= 0 && idx < TOTAL) selectDay(idx);
+                      setCalOpen(false);
+                    }}
+                    style={{ width: (SW-40)/7, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 14, marginBottom: 4, backgroundColor: isSel ? '#10B981' : isTod ? 'rgba(16,185,129,0.15)' : 'transparent', borderWidth: isTod && !isSel ? 1 : 0, borderColor: 'rgba(16,185,129,0.4)' }}
                   >
-                    <Text className={`text-[10px] uppercase font-bold mb-1 ${isSelected ? 'text-black/60' : 'text-gray-500'}`}>
-                      {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
-                    </Text>
-                    <Text className={`text-xl font-black ${isSelected ? 'text-black' : 'text-white'}`}>
-                      {dateObj.getDate()}
-                    </Text>
-                    
-                    {/* Indicatore Workouts */}
-                    <View className="flex-row items-center gap-x-1 mt-1.5 h-1.5">
-                      {hasWorkout && <View className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-black' : 'bg-[#10B981]'}`} />}
-                    </View>
+                    <Text style={{ color: isSel ? '#000' : isTod ? '#10B981' : fut ? '#374151' : '#FFF', fontSize: 15, fontWeight: isSel || isTod ? '900' : '700' }}>{day}</Text>
+                    {hasWo && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: isSel ? '#000' : '#10B981', marginTop: 2 }} />}
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </View>
+            <TouchableOpacity onPress={() => setCalOpen(false)} className="flex-row items-center justify-center bg-white/10 border border-white/10 rounded-[30px] py-3.5 mt-5 gap-x-2">
+              <X size={18} color="#FFF" />
+              <Text className="text-white font-bold text-sm">{t('common.close')}</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Sessioni della giornata */}
-          <View className="px-5 gap-y-4">
-             <Text className="text-white font-black text-xl tracking-tighter mb-2">
-               {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-             </Text>
-             
-             {isLoading ? (
-               <ActivityIndicator size="large" color="#10B981" className="mt-10" />
-             ) : selectedSessions.length === 0 ? (
-               <View className="items-center mt-10">
-                 <Dumbbell size={48} color="#4B5563" />
-                 <Text className="text-gray-500 font-bold mt-4">Rest Day. No workouts logged.</Text>
-               </View>
-             ) : (
-               selectedSessions.map((session: any) => {
-                 // Estrai dati dalla sessione
-                 const durationMin = Math.floor((session.duration_seconds || 0) / 60);
-                 const volume = session.total_volume || 0;
-                 const numSets = session.performed_sets?.length || 0;
-                 const name = session.workout_templates?.name || 'Freestyle Session';
-
-                 // Determinazione casuale o finta del tipo (Push, Pull, ecc se non c'è nel db)
-                 return (
-                   <TouchableOpacity key={session.id} className="bg-black/40 border border-white/5 rounded-[32px] overflow-hidden shadow-2xl">
-                      {/* Testata Sessione */}
-                      <View className="p-6 pb-4 border-b border-white/5 flex-row items-center justify-between">
-                        <View className="flex-row items-center flex-1">
-                          <View className="bg-blue-500/10 p-3 rounded-2xl mr-4 border border-blue-500/20">
-                            <Dumbbell size={24} color="#3B82F6" />
-                          </View>
-                          <View className="flex-1">
-                            <Text className="text-white font-black text-lg tracking-tight" numberOfLines={1}>{name}</Text>
-                            <Text className="text-gray-500 font-bold text-[10px] uppercase tracking-widest mt-1">
-                              Completed Setup
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-
-                      {/* Metriche */}
-                      <View className="bg-white/5 p-4 py-5 flex-row justify-between items-center px-6">
-                        <View className="items-center">
-                           <Clock size={16} color="#6B7280" className="mb-1" />
-                           <Text className="text-white font-black text-sm">{durationMin} min</Text>
-                           <Text className="text-gray-500 text-[10px] uppercase font-bold mt-0.5">Time</Text>
-                        </View>
-                        <View className="w-[1px] h-8 bg-white/10" />
-                        <View className="items-center">
-                           <Dumbbell size={16} color="#6B7280" className="mb-1" />
-                           <Text className="text-white font-black text-sm">{volume.toLocaleString()} kg</Text>
-                           <Text className="text-gray-500 text-[10px] uppercase font-bold mt-0.5">Volume</Text>
-                        </View>
-                        <View className="w-[1px] h-8 bg-white/10" />
-                        <View className="items-center">
-                           <Text className="text-white font-black text-base mt-0.5">{numSets}</Text>
-                           <Text className="text-gray-500 text-[10px] uppercase font-bold mt-1">Sets</Text>
-                        </View>
-                      </View>
-
-                      <View className="px-6 py-4 flex-row items-center justify-between border-t border-white/5 bg-black/20">
-                         <Text className="text-[#10B981] font-bold text-xs uppercase tracking-widest">View Details</Text>
-                         <ChevronRight size={16} color="#10B981" />
-                      </View>
-                   </TouchableOpacity>
-                 );
-               })
-             )}
-          </View>
-
-          <View className="h-32" />
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </Modal>
     </View>
   );
 }

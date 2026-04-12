@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Trash2, Info, Plus } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { DraftExercise } from '../../../hooks/useWorkoutCreation';
 import RoutineSetRow from './RoutineSetRow';
 
@@ -27,6 +28,7 @@ export default function RoutineExerciseCard({
   updateSetField,
   onOpenSetTypeSelector
 }: Props) {
+  const { t } = useTranslation();
   const { localId, exercise, notes, sets } = exerciseDraft;
 
   return (
@@ -50,17 +52,17 @@ export default function RoutineExerciseCard({
       <TextInput
         value={notes}
         onChangeText={(text) => updateExerciseNotes(localId, text)}
-        placeholder="Note per l'esercizio..."
+        placeholder={t('create_routine.notes_placeholder_exercise')}
         placeholderTextColor="#9ca3af"
         className="bg-gray-50/80 p-3 rounded-xl mb-4 text-sm font-medium text-gray-700 border border-gray-100"
       />
 
       {/* SETS HEADER */}
       <View className="flex-row mb-2 px-2 items-center">
-         <Text className="w-14 text-center text-[10px] font-black uppercase tracking-widest text-gray-400">SET</Text>
-         <Text className="flex-1 text-center text-[10px] font-black uppercase tracking-widest text-gray-400">KG</Text>
-         <Text className="flex-1 text-center text-[10px] font-black uppercase tracking-widest text-gray-400">REPS</Text>
-         <Text className="w-16 text-center text-[10px] font-black uppercase tracking-widest text-[#FF4500]">REST (s)</Text>
+         <Text className="w-14 text-center text-[10px] font-black uppercase tracking-widest text-gray-400">{t('create_routine.set_label_caps')}</Text>
+         <Text className="flex-1 text-center text-[10px] font-black uppercase tracking-widest text-gray-400">{t('create_routine.weight_label_caps')}</Text>
+         <Text className="flex-1 text-center text-[10px] font-black uppercase tracking-widest text-gray-400">{t('create_routine.reps_label_caps')}</Text>
+         <Text className="w-16 text-center text-[10px] font-black uppercase tracking-widest text-[#FF4500]">{t('create_routine.rest_label_caps')}</Text>
          <Text className="w-8"></Text>
       </View>
 
@@ -82,7 +84,7 @@ export default function RoutineExerciseCard({
         className="mt-2 py-3.5 bg-gray-50 rounded-xl items-center flex-row justify-center border border-dashed border-gray-300"
       >
         <Plus size={16} color="#4B5563" className="mr-1" />
-        <Text className="text-gray-600 font-black text-sm uppercase tracking-widest">Aggiungi Serie</Text>
+        <Text className="text-gray-600 font-black text-sm uppercase tracking-widest">{t('create_routine.add_set')}</Text>
       </TouchableOpacity>
     </View>
   );
