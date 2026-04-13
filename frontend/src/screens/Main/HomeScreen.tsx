@@ -4,13 +4,11 @@ import { useNavigationStore } from '../../store/useNavigationStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { BlurView } from 'expo-blur';
-import { Flame, Trophy, Activity, ChevronRight, Quote, Zap, Dumbbell } from 'lucide-react-native';
+import { Flame, Trophy, Activity, ChevronRight, Quote } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import ExerciseDetailModal from '../../components/exercises/ExerciseDetailModal';
-import ExerciseLibrary from '../../components/exercises/ExerciseLibrary';
 import { useAuthStore } from '../../store/useAuthStore';
 import { WorkoutService } from '../../api/workoutService';
 import { useWorkoutSummaryStore } from '../../store/useWorkoutSummaryStore';
@@ -108,9 +106,15 @@ export default function HomeScreen() {
                 <View className="w-[1px] h-12 bg-white/10 mx-4" />
                 <View className="flex-1">
                    <Text className="text-gray-400 font-bold uppercase text-[10px] tracking-widest mb-1" numberOfLines={1}>{t('home.avg_vol')}</Text>
-                   <View className="flex-row items-baseline">
-                      <Text className="text-[#10B981] text-3xl font-[1000] tracking-tighter" numberOfLines={1}>{formattedAvgVol}</Text>
-                      <Text className="text-[#10B981]/60 text-[10px] font-bold ml-1 pb-1">kg</Text>
+                   <View className="flex-row items-baseline mt-1">
+                      <Text 
+                        className="text-[#10B981] text-3xl font-[1000] tracking-tighter" 
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {formattedAvgVol}
+                      </Text>
+                      <Text className="text-[#10B981]/50 text-[10px] font-black ml-1 uppercase">kg</Text>
                    </View>
                 </View>
               </View>

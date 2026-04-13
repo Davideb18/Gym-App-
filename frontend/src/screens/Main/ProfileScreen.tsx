@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/useAuthStore';
 import { supabase } from '../../api/supabaseClient';
 import { changeLanguage } from '../../locales/i18n';
-import ExerciseDetailModal from '../../components/exercises/ExerciseDetailModal';
+import { useExerciseModal } from '../../store/useExerciseModal';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
@@ -178,11 +178,11 @@ export default function ProfileScreen() {
 
       {/* Modal Selezione Lingua */}
       <Modal visible={langModalVisible} animationType="slide" transparent onRequestClose={() => setLangModalVisible(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)' }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' }}>
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setLangModalVisible(false)} />
-            <View style={{ borderTopLeftRadius: 40, borderTopRightRadius: 40, overflow: 'hidden', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 44, backgroundColor: '#171717' }}>
-              <LinearGradient colors={['#171717', '#262626']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
-              <View className="w-10 h-1.5 bg-white/30 rounded-full self-center mb-5" />
+            <View style={{ borderTopLeftRadius: 40, borderTopRightRadius: 40, overflow: 'hidden', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 44, backgroundColor: '#171717', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' }}>
+              <LinearGradient colors={['#171717', '#222222']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+              <View className="w-10 h-1.5 bg-white/20 rounded-full self-center mb-6" />
             
             <Text className="text-white text-xl font-black mb-6 px-4">{t('profile.language')}</Text>
 
