@@ -1,18 +1,99 @@
 import { supabase } from './supabaseClient';
-import { PerformedSet, Workout, WorkoutSession, WorkoutTemplate, WorkoutTemplateExercise, WorkoutTemplateSet } from '../../../shared/types';
-import { DraftExercise, DraftSet } from '../hooks/useWorkoutCreation';
+import {
+  PerformedSet,
+  WorkoutSession,
+  WorkoutTemplate,
+  WorkoutTemplateExercise,
+  WorkoutTemplateSet,
+} from '../../../shared/types';
+import { DraftExercise } from '../hooks/useWorkoutCreation';
+import { parsePositiveFloat, parsePositiveInt } from '../utils/numberUtils';
 
 export const WorkoutService = {
-  
+  getLastPerformanceByExercises: async (profileId: string, exerciseIds: string[]) => {
+    if (!exerciseIds.length)
+      return {} as Record<string, Record<number, { reps?: number; weight?: number }>>;
+
+    const { data, error } = await supabase
+      .from('performed_sets')
+      .select(
+        'exercise_id, set_number, reps, weight, performed_at, workout_sessions!inner(profile_id, status)',
+      )
+      .in('exercise_id', exerciseIds)
+      .eq('workout_sessions.profile_id', profileId)
+      .eq('workout_sessions.status', 'completed')
+      .eq('is_completed', true)
+      .order('performed_at', { ascending: false });
+
+    if (error) throw error;
+
+    const result: Record<string, Record<number, { reps?: number; weight?: number }>> = {};
+
+    (data || []).forEach((row: any) => {
+      const exId = row.exercise_id;
+      const setNumber = Number(row.set_number) || 0;
+      if (!exId || !setNumber) return;
+
+      if (!result[exId]) result[exId] = {};
+      if (result[exId][setNumber]) return;
+
+      const reps = Number(row.reps);
+      const weight = Number(row.weight);
+
+      result[exId][setNumber] = {
+        reps: Number.isFinite(reps) && reps > 0 ? reps : undefined,
+        weight: Number.isFinite(weight) && weight > 0 ? weight : undefined,
+      };
+    });
+
+    return result;
+  },
+
+  getBestE1RMByExercises: async (profileId: string, exerciseIds: string[]) => {
+    if (!exerciseIds.length) return {} as Record<string, number>;
+
+    const { data, error } = await supabase
+      .from('performed_sets')
+      .select('exercise_id, reps, weight, workout_sessions!inner(profile_id, status)')
+      .in('exercise_id', exerciseIds)
+      .eq('workout_sessions.profile_id', profileId)
+      .eq('workout_sessions.status', 'completed')
+      .eq('is_completed', true);
+
+    if (error) throw error;
+
+    const result: Record<string, number> = {};
+
+    (data || []).forEach((row: any) => {
+      const exerciseId = row.exercise_id;
+      const reps = Number(row.reps);
+      const weight = Number(row.weight);
+      if (
+        !exerciseId ||
+        !Number.isFinite(reps) ||
+        !Number.isFinite(weight) ||
+        reps <= 0 ||
+        weight <= 0
+      )
+        return;
+
+      const e1rm = weight * (1 + reps / 30);
+      const prevBest = result[exerciseId] || 0;
+      if (e1rm > prevBest) result[exerciseId] = e1rm;
+    });
+
+    return result;
+  },
+
   // -- OTTENERE LE SCHEDE --
   getTemplates: async (profileId: string): Promise<WorkoutTemplate[]> => {
     const { data, error } = await supabase
       .from('workout_templates')
       // Con questa chiamata stiamo dicendo: "Voglio tutte le schede di questo utente (profileId),
-      // e per ogni scheda voglio anche gli esercizi collegati (workout_template_exercises) 
-      // e per ogni esercizio voglio anche le serie collegate (workout_template_sets) 
+      // e per ogni scheda voglio anche gli esercizi collegati (workout_template_exercises)
+      // e per ogni esercizio voglio anche le serie collegate (workout_template_sets)
       // e i dettagli dell'esercizio (exercises)".
-      .select('*, workout_template_exercises(*, workout_template_sets(*), exercises(*))') 
+      .select('*, workout_template_exercises(*, workout_template_sets(*), exercises(*))')
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false });
 
@@ -21,17 +102,24 @@ export const WorkoutService = {
   },
 
   // -- CREARE UNA SCHEDA CON LIMITI FREE (MAX 4) --
-  createTemplate: async (profileId: string, name: string, description?: string, isPremium: boolean = false) => {
+  createTemplate: async (
+    profileId: string,
+    name: string,
+    description?: string,
+    isPremium: boolean = false,
+  ) => {
     // LOGICA DI BUSINESS: se è free, contiamo quante schede ha già creato
     if (!isPremium) {
       const { count, error: countError } = await supabase
         .from('workout_templates')
         .select('*', { count: 'exact', head: true })
         .eq('profile_id', profileId);
-        
+
       if (countError) throw countError;
       if (count !== null && count >= 4) {
-        throw new Error("Limite Schede Raggiunto (4/4). Passa al piano Premium per creare schede infinite!");
+        throw new Error(
+          'Limite Schede Raggiunto (4/4). Passa al piano Premium per creare schede infinite!',
+        );
       }
     }
 
@@ -39,7 +127,7 @@ export const WorkoutService = {
       .from('workout_templates')
       .insert([{ profile_id: profileId, name, description }])
       .select()
-      .single(); 
+      .single();
 
     if (error) throw error;
     return data as WorkoutTemplate;
@@ -47,18 +135,17 @@ export const WorkoutService = {
 
   // -- AGGIUNGERE UN ESERCIZIO CON DROPSET / CLUSTER (Salvato nel JSON) --
   addExerciseToTemplate: async (
-    templateId: string, 
-    exerciseId: string, 
+    templateId: string,
+    exerciseId: string,
     order: number,
-    // La dicitura "Omit" vuol dire: 
-    // "Usa il tipo WorkoutTemplateSet, ma tralascia (nascondi) i campi 'id', 'created_at' etc, 
+    // La dicitura "Omit" vuol dire:
+    // "Usa il tipo WorkoutTemplateSet, ma tralascia (nascondi) i campi 'id', 'created_at' etc,
     // perché questi li creerà Supabase da solo dopo."
     sets: Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[],
-    notes?: string
+    notes?: string,
   ) => {
-
-    // Qui diciamo: Supabase, inseriscimi l'esercizio. 
-    // Siccome in basso faremo ANCHE la chiamata per salvare i Set del figlio, ho 
+    // Qui diciamo: Supabase, inseriscimi l'esercizio.
+    // Siccome in basso faremo ANCHE la chiamata per salvare i Set del figlio, ho
     // rinominato la variabile `data` in `exerciseData`, per non confonderla con il
     // `data` che useremo dopo per i set! Lo stesso vale per `error` che per me
     // diventa `exerciseError`.
@@ -69,28 +156,27 @@ export const WorkoutService = {
           template_id: templateId,
           exercise_id: exerciseId,
           exercise_order: order,
-          notes: notes
-        }
+          notes: notes,
+        },
       ])
       .select()
-      .single(); 
-      // single() ci assicura che restituisce UN oggetto (exerciseData), non un array [exerciseData].
+      .single();
+    // single() ci assicura che restituisce UN oggetto (exerciseData), non un array [exerciseData].
 
     // Se il cassetto ha un errore, butto via la scatola e fermo tutto il programma.
     if (exerciseError) throw exerciseError;
     if (!exerciseData) throw new Error("Errore strano: non ho ricevuto l'esercizio");
-    
+
     // Controllo se dalla UI l'utente mi ha passato almeno 1 serie (o se ha lasciato vuoto).
     if (sets && sets.length > 0) {
-      
       // Qui prendo l'array che mi ha passato l'utente. Faccio una "fotocopia" di ogni singolo
-      // serie iterando (`.map`). Copio tutti i valori scelti (peso, reps: `...set`) e AGGIUNGO 
+      // serie iterando (`.map`). Copio tutti i valori scelti (peso, reps: `...set`) e AGGIUNGO
       // forzatamente l'ID di collegamento per il db (template_exercise_id)
       const setsToInsert = sets.map((set, index) => ({
         ...set,
         template_exercise_id: exerciseData.id,
         // Mi assicuro anche di forzare l'ordine in cui si trovano, per sicurezza
-        set_number: index + 1 
+        set_number: index + 1,
       }));
 
       const { error: setsError } = await supabase
@@ -107,7 +193,7 @@ export const WorkoutService = {
     name: string,
     description: string | undefined,
     exercises: DraftExercise[],
-    isPremium: boolean = false
+    isPremium: boolean = false,
   ) => {
     // 1. Crea il Template Base
     const template = await WorkoutService.createTemplate(profileId, name, description, isPremium);
@@ -115,42 +201,57 @@ export const WorkoutService = {
     try {
       // 2. Per ogni esercizio nel draft, salvalo con i suoi set
       for (let i = 0; i < exercises.length; i++) {
-         const draftEx = exercises[i];
-         
-         // Mappiamo i DraftSet verso il formato atteso dal DB
-         const setsToInsert = draftEx.sets.map((draftSet, index) => {
-           const intensity_payload: Record<string, unknown> = {};
-           if (draftSet.clusterMiniSets) intensity_payload.cluster_mini_sets = parseInt(draftSet.clusterMiniSets, 10);
-           if (draftSet.clusterIntraRest) intensity_payload.cluster_intra_rest = parseInt(draftSet.clusterIntraRest, 10);
-           if (draftSet.dropsetDrops) intensity_payload.dropset_drops = parseInt(draftSet.dropsetDrops, 10);
-           if (draftSet.dropsetPercent) intensity_payload.dropset_percent = parseInt(draftSet.dropsetPercent, 10);
+        const draftEx = exercises[i];
 
-           const parsedReps = parseInt(draftSet.reps, 10);
-         const parsedWeight = parseFloat(draftSet.intensity);
-         const premiumTypes = ['warmup', 'failure', 'backoff', 'dropset', 'cluster', 'myo_reps', 'rest_pause'];
+        // Mappiamo i DraftSet verso il formato atteso dal DB
+        const setsToInsert = draftEx.sets.map((draftSet, index) => {
+          const intensity_payload: Record<string, unknown> = {};
+          if (draftSet.clusterMiniSets)
+            intensity_payload.cluster_mini_sets = parsePositiveInt(draftSet.clusterMiniSets);
+          if (draftSet.clusterIntraRest)
+            intensity_payload.cluster_intra_rest = parsePositiveInt(draftSet.clusterIntraRest);
+          if (draftSet.dropsetDrops)
+            intensity_payload.dropset_drops = parsePositiveInt(draftSet.dropsetDrops);
+          if (draftSet.dropsetPercent)
+            intensity_payload.dropset_percent = parsePositiveInt(draftSet.dropsetPercent);
 
-         return {
-           target_reps_min: draftSet.reps && parsedReps > 0 ? parsedReps : null,
-           target_reps_max: draftSet.reps && parsedReps > 0 ? parsedReps : null,
-           target_weight: draftSet.intensity && !isNaN(parsedWeight) ? parsedWeight : null,
-           rest_seconds: parseInt(draftSet.restSeconds, 10) || 90,
-             set_type: draftSet.setType,
-             set_number: index + 1,
-             is_premium_feature: premiumTypes.includes(draftSet.setType),
-             intensity_payload: Object.keys(intensity_payload).length > 0 ? intensity_payload : null
-           };
-         }) as Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[];
+          const parsedReps = parsePositiveInt(draftSet.reps);
+          const parsedWeight = parsePositiveFloat(draftSet.intensity);
+          const premiumTypes = [
+            'warmup',
+            'failure',
+            'backoff',
+            'dropset',
+            'cluster',
+            'myo_reps',
+            'rest_pause',
+          ];
 
-         await WorkoutService.addExerciseToTemplate(
-           template.id, 
-           draftEx.exercise.id, 
-           i + 1, // order
-           setsToInsert,
-           draftEx.notes
-         );
+          return {
+            target_reps_min: draftSet.reps && parsedReps ? parsedReps : null,
+            target_reps_max: draftSet.reps && parsedReps ? parsedReps : null,
+            target_weight: draftSet.intensity && parsedWeight ? parsedWeight : null,
+            rest_seconds: parsePositiveInt(draftSet.restSeconds, 90) || 90,
+            set_type: draftSet.setType,
+            set_number: index + 1,
+            is_premium_feature: premiumTypes.includes(draftSet.setType),
+            intensity_payload: Object.keys(intensity_payload).length > 0 ? intensity_payload : null,
+          };
+        }) as Omit<
+          WorkoutTemplateSet,
+          'id' | 'template_exercise_id' | 'created_at' | 'updated_at'
+        >[];
+
+        await WorkoutService.addExerciseToTemplate(
+          template.id,
+          draftEx.exercise.id,
+          i + 1, // order
+          setsToInsert,
+          draftEx.notes,
+        );
       }
     } catch (error) {
-      // ROLLBACK MANUALE: se fallisce qualcosa durante il salvataggio degli esercizi/serie, 
+      // ROLLBACK MANUALE: se fallisce qualcosa durante il salvataggio degli esercizi/serie,
       // cancelliamo il template "fantasma" che era stato creato all'inizio.
       await supabase.from('workout_templates').delete().eq('id', template.id);
       throw error;
@@ -164,14 +265,14 @@ export const WorkoutService = {
     templateId: string,
     name: string,
     description: string | undefined,
-    exercises: DraftExercise[]
+    exercises: DraftExercise[],
   ) => {
     // 1. Aggiorna la testata
     const { error: updateError } = await supabase
       .from('workout_templates')
       .update({ name, description })
       .eq('id', templateId);
-      
+
     if (updateError) throw updateError;
 
     // 2. Elimina tutti i vecchi esercizi (le foreign key dovrebbero avere ON DELETE CASCADE per eliminare i set figli)
@@ -184,38 +285,50 @@ export const WorkoutService = {
 
     // 3. Reinserisce la nuova struttura
     for (let i = 0; i < exercises.length; i++) {
-       const draftEx = exercises[i];
-       
-       const setsToInsert = draftEx.sets.map((draftSet, index) => {
-         const intensity_payload: Record<string, unknown> = {};
-         if (draftSet.clusterMiniSets) intensity_payload.cluster_mini_sets = parseInt(draftSet.clusterMiniSets, 10);
-         if (draftSet.clusterIntraRest) intensity_payload.cluster_intra_rest = parseInt(draftSet.clusterIntraRest, 10);
-         if (draftSet.dropsetDrops) intensity_payload.dropset_drops = parseInt(draftSet.dropsetDrops, 10);
-         if (draftSet.dropsetPercent) intensity_payload.dropset_percent = parseInt(draftSet.dropsetPercent, 10);
+      const draftEx = exercises[i];
 
-         const parsedReps = parseInt(draftSet.reps, 10);
-         const parsedWeight = parseFloat(draftSet.intensity);
-         const premiumTypes = ['warmup', 'failure', 'backoff', 'dropset', 'cluster', 'myo_reps', 'rest_pause'];
+      const setsToInsert = draftEx.sets.map((draftSet, index) => {
+        const intensity_payload: Record<string, unknown> = {};
+        if (draftSet.clusterMiniSets)
+          intensity_payload.cluster_mini_sets = parsePositiveInt(draftSet.clusterMiniSets);
+        if (draftSet.clusterIntraRest)
+          intensity_payload.cluster_intra_rest = parsePositiveInt(draftSet.clusterIntraRest);
+        if (draftSet.dropsetDrops)
+          intensity_payload.dropset_drops = parsePositiveInt(draftSet.dropsetDrops);
+        if (draftSet.dropsetPercent)
+          intensity_payload.dropset_percent = parsePositiveInt(draftSet.dropsetPercent);
 
-         return {
-           target_reps_min: draftSet.reps && parsedReps > 0 ? parsedReps : null,
-           target_reps_max: draftSet.reps && parsedReps > 0 ? parsedReps : null,
-           target_weight: draftSet.intensity && !isNaN(parsedWeight) ? parsedWeight : null,
-           rest_seconds: parseInt(draftSet.restSeconds, 10) || 90,
-           set_type: draftSet.setType,
-           set_number: index + 1,
-           is_premium_feature: premiumTypes.includes(draftSet.setType),
-           intensity_payload: Object.keys(intensity_payload).length > 0 ? intensity_payload : null
-         };
-       }) as Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[];
+        const parsedReps = parsePositiveInt(draftSet.reps);
+        const parsedWeight = parsePositiveFloat(draftSet.intensity);
+        const premiumTypes = [
+          'warmup',
+          'failure',
+          'backoff',
+          'dropset',
+          'cluster',
+          'myo_reps',
+          'rest_pause',
+        ];
 
-       await WorkoutService.addExerciseToTemplate(
-         templateId, 
-         draftEx.exercise.id, 
-         i + 1, 
-         setsToInsert,
-         draftEx.notes
-       );
+        return {
+          target_reps_min: draftSet.reps && parsedReps ? parsedReps : null,
+          target_reps_max: draftSet.reps && parsedReps ? parsedReps : null,
+          target_weight: draftSet.intensity && parsedWeight ? parsedWeight : null,
+          rest_seconds: parsePositiveInt(draftSet.restSeconds, 90) || 90,
+          set_type: draftSet.setType,
+          set_number: index + 1,
+          is_premium_feature: premiumTypes.includes(draftSet.setType),
+          intensity_payload: Object.keys(intensity_payload).length > 0 ? intensity_payload : null,
+        };
+      }) as Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[];
+
+      await WorkoutService.addExerciseToTemplate(
+        templateId,
+        draftEx.exercise.id,
+        i + 1,
+        setsToInsert,
+        draftEx.notes,
+      );
     }
   },
 
@@ -226,33 +339,35 @@ export const WorkoutService = {
       .delete()
       .eq('id', templateId)
       .eq('profile_id', profileId);
-    
+
     if (error) throw error;
   },
 
-
   // -- INIZIARE UNA SESSIONE (clonando la scheda in una sessione attiva) --
   startSession: async (profileId: string, TemplateId?: string) => {
-    const {data, error} = await supabase
+    const { data, error } = await supabase
       .from('workout_sessions')
       .insert([
-        { 
-          profile_id: profileId, 
-          template_id: TemplateId 
-        }
+        {
+          profile_id: profileId,
+          template_id: TemplateId,
+        },
       ])
       .select()
       .single();
 
-      if( error ) throw error;
-      return data as WorkoutSession;
+    if (error) throw error;
+    return data as WorkoutSession;
   },
 
   // -- LOGGARE UNA SERIE E COLLEGARLA ALL'ESERCIZIO E ALLA SCHEDA --
   logPerformedSet: async (
     sessionId: string,
     exerciseId: string,
-    setPayload: Omit<PerformedSet, 'id' | 'session_id' | 'exercise_id' | 'performed_at' | 'created_at'>,
+    setPayload: Omit<
+      PerformedSet,
+      'id' | 'session_id' | 'exercise_id' | 'performed_at' | 'created_at'
+    >,
   ) => {
     const { data, error } = await supabase
       .from('performed_sets')
@@ -260,8 +375,8 @@ export const WorkoutService = {
         {
           session_id: sessionId,
           exercise_id: exerciseId,
-          ...setPayload
-        }
+          ...setPayload,
+        },
       ])
       .select()
       .single();
@@ -271,7 +386,12 @@ export const WorkoutService = {
   },
 
   // -- FINIRE LA SESSIONE (calcolando durata, volume totale, etc) --
-  finishSession: async (sessionId: string, durationSeconds: number, totalVolume: number, notes?: string) => {
+  finishSession: async (
+    sessionId: string,
+    durationSeconds: number,
+    totalVolume: number,
+    notes?: string,
+  ) => {
     const { data, error } = await supabase
       .from('workout_sessions')
       .update({
@@ -279,7 +399,7 @@ export const WorkoutService = {
         completed_at: new Date().toISOString(),
         duration_seconds: durationSeconds,
         total_volume: totalVolume,
-        notes: notes
+        notes: notes,
       })
       .eq('id', sessionId) // Assicuriamoci di aggiornare la sessione giusta
       .select()
@@ -295,42 +415,101 @@ export const WorkoutService = {
     templateId: string | undefined,
     startTime: number,
     totalVolume: number,
-    exercises: any[]
+    exercises: any[],
   ) => {
+    const e1rm = (weight: number, reps: number) => {
+      if (!Number.isFinite(weight) || !Number.isFinite(reps) || weight <= 0 || reps <= 0) return 0;
+      return weight * (1 + reps / 30);
+    };
+
+    const currentBestByExercise = new Map<
+      string,
+      { exerciseName: string; weight: number; reps: number; e1rm: number }
+    >();
+    exercises.forEach((ex) => {
+      ex.sets.forEach((set: any) => {
+        if (!set.is_completed) return;
+        const reps = Number(set.real_reps);
+        const weight = Number(set.real_weight);
+        if (!Number.isFinite(reps) || !Number.isFinite(weight) || reps <= 0 || weight <= 0) return;
+        const score = e1rm(weight, reps);
+        const prev = currentBestByExercise.get(ex.exercise_id);
+        if (!prev || score > prev.e1rm) {
+          currentBestByExercise.set(ex.exercise_id, {
+            exerciseName: ex.exercise_name,
+            reps,
+            weight,
+            e1rm: score,
+          });
+        }
+      });
+    });
+
+    const exerciseIds = Array.from(currentBestByExercise.keys());
+    let historicalRows: any[] = [];
+    if (exerciseIds.length) {
+      const { data: historyData, error: historyError } = await supabase
+        .from('performed_sets')
+        .select('exercise_id, reps, weight, workout_sessions!inner(profile_id, status)')
+        .in('exercise_id', exerciseIds)
+        .eq('workout_sessions.profile_id', profileId)
+        .eq('workout_sessions.status', 'completed')
+        .eq('is_completed', true);
+
+      if (historyError) throw historyError;
+      historicalRows = historyData || [];
+    }
+
+    const historicalBestByExercise = new Map<string, number>();
+    historicalRows.forEach((row: any) => {
+      const exId = row.exercise_id;
+      const reps = Number(row.reps);
+      const weight = Number(row.weight);
+      const score = e1rm(weight, reps);
+      if (!exId || score <= 0) return;
+      const prev = historicalBestByExercise.get(exId) || 0;
+      if (score > prev) historicalBestByExercise.set(exId, score);
+    });
+
     // 1. Create the session
     const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
     const { data: sessionData, error: sessionError } = await supabase
       .from('workout_sessions')
-      .insert([{
-        profile_id: profileId,
-        template_id: templateId || null,
-        status: 'completed',
-        started_at: new Date(startTime).toISOString(),
-        completed_at: new Date().toISOString(),
-        duration_seconds: durationSeconds,
-        total_volume: totalVolume
-      }])
+      .insert([
+        {
+          profile_id: profileId,
+          template_id: templateId || null,
+          status: 'completed',
+          started_at: new Date(startTime).toISOString(),
+          completed_at: new Date().toISOString(),
+          duration_seconds: durationSeconds,
+          total_volume: totalVolume,
+        },
+      ])
       .select()
       .single();
 
     if (sessionError) throw sessionError;
-    if (!sessionData) throw new Error("Errore durante la creazione della sessione");
+    if (!sessionData) throw new Error('Errore durante la creazione della sessione');
 
     // 2. Prepare the performed_sets payload
     const setsToInsert: any[] = [];
-    
-    exercises.forEach(ex => {
+
+    exercises.forEach((ex) => {
       ex.sets.forEach((set: any) => {
-         // Salviamo solo le serie segnate come completate
+        // Salviamo solo le serie segnate come completate
         if (set.is_completed) {
+          const safeReps = Number(set.real_reps);
+          const safeWeight = Number(set.real_weight);
+
           setsToInsert.push({
             session_id: sessionData.id,
             exercise_id: ex.exercise_id,
             template_set_id: set.template_set_id || null,
             set_number: set.set_number,
             set_type: set.set_type,
-            reps: set.real_reps || null,
-            weight: set.real_weight || null,
+            reps: Number.isFinite(safeReps) && safeReps > 0 ? Math.round(safeReps) : null,
+            weight: Number.isFinite(safeWeight) && safeWeight > 0 ? safeWeight : null,
             is_completed: true,
             performed_at: new Date().toISOString(),
           });
@@ -339,10 +518,8 @@ export const WorkoutService = {
     });
 
     if (setsToInsert.length > 0) {
-      const { error: setsError } = await supabase
-        .from('performed_sets')
-        .insert(setsToInsert);
-      
+      const { error: setsError } = await supabase.from('performed_sets').insert(setsToInsert);
+
       if (setsError) {
         // Rollback
         await supabase.from('workout_sessions').delete().eq('id', sessionData.id);
@@ -350,7 +527,21 @@ export const WorkoutService = {
       }
     }
 
-    return sessionData as WorkoutSession;
+    const newPrs = Array.from(currentBestByExercise.entries())
+      .filter(
+        ([exerciseId, current]) => current.e1rm > (historicalBestByExercise.get(exerciseId) || 0),
+      )
+      .map(([, current]) => ({
+        exerciseName: current.exerciseName,
+        weight: current.weight,
+        reps: current.reps,
+        e1rm: current.e1rm,
+      }));
+
+    return {
+      session: sessionData as WorkoutSession,
+      newPrs,
+    };
   },
 
   // -- OTTENERE LO STORICO DI UN ESERCIZIO IN LINEA --
@@ -365,39 +556,38 @@ export const WorkoutService = {
       .limit(35);
 
     if (error) throw error;
-    
+
     if (!data || data.length === 0) return [];
 
     // Raggruppa per session_id
     const grouped = data.reduce((acc: Record<string, any>, curr: any) => {
-        const sid = curr.session_id;
-        if(!acc[sid]) {
-            acc[sid] = {
-               session_id: sid,
-               completed_at: curr.workout_sessions?.completed_at || curr.performed_at,
-               notes: curr.workout_sessions?.notes || '',
-               sets: []
-            };
-        }
-        // Li ordiniamo temporalmente
-        acc[sid].sets.push(curr);
-        return acc;
+      const sid = curr.session_id;
+      if (!acc[sid]) {
+        acc[sid] = {
+          session_id: sid,
+          completed_at: curr.workout_sessions?.completed_at || curr.performed_at,
+          notes: curr.workout_sessions?.notes || '',
+          sets: [],
+        };
+      }
+      // Li ordiniamo temporalmente
+      acc[sid].sets.push(curr);
+      return acc;
     }, {});
 
     // Per ogni sessione riordiniamo i set in base al set_number
     Object.values(grouped).forEach((session: any) => {
-       session.sets.sort((a: any, b: any) => a.set_number - b.set_number);
+      session.sets.sort((a: any, b: any) => a.set_number - b.set_number);
     });
 
-    return Object.values(grouped).sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+    return Object.values(grouped).sort(
+      (a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime(),
+    );
   },
 
   // -- UPDATE NOTE DELLA SESSIONE --
   updateSessionNotes: async (sessionId: string, notes: string) => {
-    const { error } = await supabase
-      .from('workout_sessions')
-      .update({ notes })
-      .eq('id', sessionId);
+    const { error } = await supabase.from('workout_sessions').update({ notes }).eq('id', sessionId);
     if (error) throw error;
   },
 
@@ -416,12 +606,12 @@ export const WorkoutService = {
   getRecentSessions: async (profileId: string) => {
     const { data, error } = await supabase
       .from('workout_sessions')
-      .select('*, workout_templates(name), performed_sets(*)')
+      .select('*, workout_templates(name), performed_sets(*, exercises(name))')
       .eq('profile_id', profileId)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false });
 
     if (error) throw error;
     return data;
-  }
+  },
 };

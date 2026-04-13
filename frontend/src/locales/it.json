@@ -43,6 +43,7 @@
     "signup_success_body": "Registrazione completata. Controlla la tua email per confermare l'account prima di accedere."
   },
   "home": {
+    "hub_title": "Workout Hub",
     "motivation_title": "Motivazione Giornaliera",
     "motivation_quote": "\"LA FORZA NON DERIVA DAL VINCERE. LE TUE LOTTE SVILUPPANO I TUOI PUNTI DI FORZA.\"",
     "activity_overview": "Panoramica Attività",
@@ -50,6 +51,8 @@
     "total_time": "Tempo Totale",
     "avg_vol": "Vol Medio",
     "recent_sessions": "Sessioni Recenti",
+    "session_template_unavailable": "Questo allenamento non e piu disponibile.",
+    "deleted_template_fallback": "Allenamento Storico",
     "no_recent_sessions": "Nessuna sessione recente.",
     "start_blank_workout": "Inizia Allenamento Vuoto",
     "motivation_quotes": [
@@ -68,6 +71,7 @@
     ]
   },
   "history": {
+    "chronology_title": "Chronology",
     "future_title": "Futuro",
     "future_subtitle": "Continua ad allenarti!",
     "rest_day": "Giorno di Riposo",
@@ -79,8 +83,8 @@
     "view_details": "Vedi Dettagli"
   },
   "workouts": {
-    "templates_title": "Workout Templates",
-    "custom": "Personalizzato",
+    "templates_title": "Pagina Allenamenti",
+    "custom": "Workout",
     "ai_gen": "AI Gen",
     "exercise": "Esercizio",
     "my_routines": "Le Mie Routine",
@@ -91,6 +95,7 @@
     "delete_error": "Non è stato possibile eliminare la scheda."
   },
   "profile": {
+    "main_page_title": "Profile Main Page",
     "settings": "Impostazioni",
     "language": "Lingua",
     "prs_set": "Record",
@@ -220,5 +225,9 @@
     "feature_sets": "Tipologie di serie avanzate (Dropset, Cluster...)",
     "feature_vision": "Monitoraggio Posa AI (Prossimamente)",
     "subscribe": "Abbonati Ora"
+  },
+  "records": {
+    "new_pr_title": "Nuovo Record Sbloccato!",
+    "new_pr_subtitle": "Hai superato il tuo limite. Continua cosi!"
   }
 }

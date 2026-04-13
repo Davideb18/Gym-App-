@@ -8,10 +8,10 @@ interface AuthState {
   isLoading: boolean;
   setAuth: (session: Session | null) => void;
   signOut: () => Promise<void>;
-  signIn: (email: string, password: string ) => Promise<{ error: any}>;
-  signUp: (email: string, password: string, name: string ) => Promise<{ error: any}>;
-  resetPassword: (email: string) => Promise<{ error: any }>; 
-  signInWithOAuth: (provider: 'google' | 'apple' | 'facebook') => Promise<{ error: any }>; 
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
+  signInWithOAuth: (provider: 'google' | 'apple' | 'facebook') => Promise<{ error: any }>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -20,10 +20,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true, // Iniziamo in caricamento finché non controlliamo la sessione
 
   setAuth: (session) => {
-    set({ 
-      session, 
-      user: session?.user ?? null, 
-      isLoading: false 
+    set({
+      session,
+      user: session?.user ?? null,
+      isLoading: false,
     });
   },
 
@@ -33,8 +33,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signIn: async (email, password) => {
-    const { data, error } = await authService.signIn( email, password );
-    return {error};
+    const { error } = await authService.signIn(email, password);
+    return { error };
   },
 
   signUp: async (email, password, name) => {
@@ -51,5 +51,4 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { error } = await authService.signInWithOAuth(provider);
     return { error };
   },
-
 }));

@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
 
 interface RestTimerState {
   isActive: boolean;

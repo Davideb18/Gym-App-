@@ -12,10 +12,29 @@
     "install:all": "npm install",
     "frontend:start": "npm run start -w frontend",
     "backend:dev": "npm run dev -w backend",
+    "lint": "npm run lint -w frontend && npm run lint -w backend",
+    "lint:fix": "npm run lint:fix -w frontend && npm run lint:fix -w backend",
+    "typecheck": "npm run typecheck -w frontend && npm run typecheck -w backend",
+    "prepare": "husky",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{ts,tsx}": [
+      "npm run lint:staged -w frontend",
+      "prettier --write"
+    ],
+    "backend/src/**/*.ts": [
+      "npm run lint:staged -w backend",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "prettier": "^3.8.1"
   }
 }

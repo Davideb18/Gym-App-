@@ -1,6 +1,11 @@
 // frontend/src/store/useActiveWorkout.ts
 import { create } from 'zustand';
-import { WorkoutTemplate, SetType, WorkoutTemplateExercise, WorkoutTemplateSet } from '../../../shared/types';
+import {
+  WorkoutTemplate,
+  SetType,
+  WorkoutTemplateExercise,
+  WorkoutTemplateSet,
+} from '../../../shared/types';
 import 'react-native-get-random-values'; // Serve per generare ID unici (uuid) in React Native
 import { v4 as uuidv4 } from 'uuid';
 import { useRestTimer } from './useRestTimer';
@@ -14,10 +19,12 @@ export interface LiveSet {
   target_reps?: number | null;
   target_weight?: number | null;
   rest_seconds: number;
-  
+
   // Dati reali inseriti durante il workout
   real_reps?: number;
   real_weight?: number;
+  last_reps?: number;
+  last_weight?: number;
   is_completed: boolean;
 }
 
@@ -37,10 +44,18 @@ interface ActiveWorkoutState {
   routineName: string;
   exercises: LiveExercise[];
   startTime: number | null;
-  
+
   // Azioni Universali
   startWorkout: (template: WorkoutTemplate) => void;
-  updateSet: (exerciseId: string, setId: string, field: 'real_reps' | 'real_weight', value: number) => void;
+  updateSet: (
+    exerciseId: string,
+    setId: string,
+    field: 'real_reps' | 'real_weight',
+    value?: number,
+  ) => void;
+  applyLastPerformance: (
+    payload: Record<string, Record<number, { reps?: number; weight?: number }>>,
+  ) => void;
   toggleSetComplete: (exerciseId: string, setId: string) => void;
   finishWorkout: () => void;
   cancelWorkout: () => void;
@@ -58,33 +73,38 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
 
   // FUNZIONE 1: L'utente preme "AVVIA ALLENAMENTO"
   startWorkout: (template) => {
-    // Trasformiamo la "Scheda" (Morta) in una "Sessione Live" (Viva)
-    const liveExercises: LiveExercise[] = (template.workout_template_exercises || []).map((te: WorkoutTemplateExercise) => {
-      
-      const liveSets: LiveSet[] = (te.workout_template_sets || []).map((ts: WorkoutTemplateSet) => ({
-        id: uuidv4(),
-        template_set_id: ts.id,
-        set_number: ts.set_number,
-        set_type: ts.set_type,
-        target_reps: ts.target_reps_max, // Suggerimento da mostrare
-        target_weight: ts.target_weight, // Suggerimento da mostrare
-        rest_seconds: ts.rest_seconds,
-        is_completed: false,
-        // Pre-compiliamo quelli reali col target così l'utente fa prima!
-        real_reps: ts.target_reps_max || undefined, 
-        real_weight: ts.target_weight || undefined,
-      }));
+    useRestTimer.getState().stopTimer();
 
-      return {
-        id: uuidv4(),
-        template_exercise_id: te.id,
-        exercise_id: te.exercise_id,
-        // !! Attenzione: qui assumiamo che il join restituisca 'exercises' come singola entità o array
-        // A seconda di come l'hai gestito in Supabase, assicurati di prendere il name.
-        exercise_name: (te.exercises as any)?.name || 'Esercizio Sconosciuto',
-        sets: liveSets,
-      };
-    });
+    // Trasformiamo la "Scheda" (Morta) in una "Sessione Live" (Viva)
+    const liveExercises: LiveExercise[] = (template.workout_template_exercises || []).map(
+      (te: WorkoutTemplateExercise) => {
+        const liveSets: LiveSet[] = (te.workout_template_sets || []).map(
+          (ts: WorkoutTemplateSet) => ({
+            id: uuidv4(),
+            template_set_id: ts.id,
+            set_number: ts.set_number,
+            set_type: ts.set_type,
+            target_reps: ts.target_reps_max, // Suggerimento da mostrare
+            target_weight: ts.target_weight, // Suggerimento da mostrare
+            rest_seconds: ts.rest_seconds,
+            is_completed: false,
+            // Pre-compiliamo quelli reali col target così l'utente fa prima!
+            real_reps: ts.target_reps_max || undefined,
+            real_weight: ts.target_weight || undefined,
+          }),
+        );
+
+        return {
+          id: uuidv4(),
+          template_exercise_id: te.id,
+          exercise_id: te.exercise_id,
+          // !! Attenzione: qui assumiamo che il join restituisca 'exercises' come singola entità o array
+          // A seconda di come l'hai gestito in Supabase, assicurati di prendere il name.
+          exercise_name: (te.exercises as any)?.name || 'Esercizio Sconosciuto',
+          sets: liveSets,
+        };
+      },
+    );
 
     // Inietta i dati nello Store Globale e avviamo il tempo
     set({
@@ -100,13 +120,40 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
   // FUNZIONE 2: L'utente cambia i KG o le Reps nella casella
   updateSet: (exerciseId, setId, field, value) => {
     set((state) => ({
-      exercises: state.exercises.map(ex => {
+      exercises: state.exercises.map((ex) => {
         if (ex.id !== exerciseId) return ex;
         return {
           ...ex,
-          sets: ex.sets.map(s => s.id === setId ? { ...s, [field]: value } : s)
+          sets: ex.sets.map((s) => {
+            if (s.id !== setId) return s;
+            if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
+              return { ...s, [field]: undefined };
+            }
+            return { ...s, [field]: value };
+          }),
         };
-      })
+      }),
+    }));
+  },
+
+  applyLastPerformance: (payload) => {
+    set((state) => ({
+      exercises: state.exercises.map((ex) => {
+        const exerciseHistory = payload[ex.exercise_id] || {};
+        return {
+          ...ex,
+          sets: ex.sets.map((s) => {
+            const last = exerciseHistory[s.set_number];
+            if (!last) return s;
+
+            return {
+              ...s,
+              last_weight: last.weight,
+              last_reps: last.reps,
+            };
+          }),
+        };
+      }),
     }));
   },
 
@@ -116,11 +163,11 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
     let isCompleting = false;
     let restSeconds = 90;
 
-    const updatedExercises = state.exercises.map(ex => {
+    const updatedExercises = state.exercises.map((ex) => {
       if (ex.id !== exerciseId) return ex;
       return {
         ...ex,
-        sets: ex.sets.map(s => {
+        sets: ex.sets.map((s) => {
           if (s.id === setId) {
             isCompleting = !s.is_completed;
             // Se c'è un tempo di recupero impostato lo prendiamo
@@ -128,7 +175,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
             return { ...s, is_completed: isCompleting };
           }
           return s;
-        })
+        }),
       };
     });
 
@@ -141,14 +188,30 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
   },
 
   finishWorkout: () => {
-    set({ isActive: false, isExpanded: false, templateId: undefined, routineName: '', exercises: [], startTime: null });
+    useRestTimer.getState().stopTimer();
+    set({
+      isActive: false,
+      isExpanded: false,
+      templateId: undefined,
+      routineName: '',
+      exercises: [],
+      startTime: null,
+    });
   },
 
   // FUNZIONE 5: Annullamento
   cancelWorkout: () => {
-    set({ isActive: false, isExpanded: false, templateId: undefined, routineName: '', exercises: [], startTime: null });
+    useRestTimer.getState().stopTimer();
+    set({
+      isActive: false,
+      isExpanded: false,
+      templateId: undefined,
+      routineName: '',
+      exercises: [],
+      startTime: null,
+    });
   },
 
   // FUNZIONE 6: UI Modal Toggle
-  setIsExpanded: (val) => set({ isExpanded: val })
+  setIsExpanded: (val) => set({ isExpanded: val }),
 }));

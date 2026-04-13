@@ -1,10 +1,18 @@
 // frontend/src/components/schede/CreateRoutineScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { X, Save, Plus, Dumbbell, AlignLeft, Layout, Flame } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
+import { X, Save, Plus, Dumbbell, AlignLeft, Layout } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
-import { WorkoutTemplate } from '../../../../shared/types';
 import { WorkoutService } from '../../api/workoutService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCreateRoutineStore } from '../../store/useCreateRoutineStore';
@@ -54,7 +62,7 @@ export default function CreateRoutineScreen() {
           templateToEdit.id,
           routineName.trim(),
           routineDesc.trim() || undefined,
-          [] // esercizi gestiti dall'UI di modifica avanzata
+          [], // esercizi gestiti dall'UI di modifica avanzata
         );
         Alert.alert(t('common.success'), t('create_routine.success_updated'));
       } else {
@@ -63,7 +71,7 @@ export default function CreateRoutineScreen() {
           userId,
           routineName.trim(),
           routineDesc.trim() || undefined,
-          []
+          [],
         );
         Alert.alert(t('common.success'), t('create_routine.success_created'));
       }
@@ -81,10 +89,24 @@ export default function CreateRoutineScreen() {
   return (
     <View className="absolute inset-0 z-[105] elevation-[105]">
       {/* Sfondo Oscurato cliccabile */}
-      <TouchableOpacity activeOpacity={1} onPress={closeCreate} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} />
-      
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={closeCreate}
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+      />
+
       {/* Contenitore APPLE STYLE BOTTOM SHEET */}
-      <View style={{ position: 'absolute', bottom: 0, width: '100%', height: '93%', borderTopLeftRadius: 40, borderTopRightRadius: 40, overflow: 'hidden' }}>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          height: '93%',
+          borderTopLeftRadius: 40,
+          borderTopRightRadius: 40,
+          overflow: 'hidden',
+        }}
+      >
         <LinearGradient
           colors={['#171717', '#D1D5DB']}
           start={{ x: 0, y: 0 }}
@@ -95,10 +117,21 @@ export default function CreateRoutineScreen() {
           colors={['rgba(16,185,129,0.35)', 'rgba(16,185,129,0.05)', 'transparent']}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200 }}
         />
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(16,185,129,0.4)' }} />
-        
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
-          
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 1,
+            backgroundColor: 'rgba(16,185,129,0.4)',
+          }}
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
+        >
           {/* Maniglietta visiva stile iOS */}
           <View className="w-full items-center pt-3 pb-2">
             <View className="w-12 h-1.5 bg-white/30 rounded-full" />
@@ -106,7 +139,10 @@ export default function CreateRoutineScreen() {
 
           {/* Header */}
           <View className="flex-row justify-between items-center px-6 mb-4 mt-2">
-            <TouchableOpacity onPress={closeCreate} className="bg-white/10 p-2.5 rounded-full border border-white/5">
+            <TouchableOpacity
+              onPress={closeCreate}
+              className="bg-white/10 p-2.5 rounded-full border border-white/5"
+            >
               <X size={24} color="#FFF" />
             </TouchableOpacity>
             <Text className="text-white font-black text-sm uppercase tracking-widest">
@@ -122,7 +158,6 @@ export default function CreateRoutineScreen() {
           </View>
 
           <ScrollView className="flex-1 px-6 pt-4" contentContainerStyle={{ paddingBottom: 150 }}>
-            
             {/* Box Titolo e Desc */}
             <View className="bg-black/40 rounded-3xl p-5 mb-5 border border-white/5">
               <View className="flex-row items-center border-b border-white/10 pb-4 mb-4">
@@ -137,7 +172,7 @@ export default function CreateRoutineScreen() {
                   onChangeText={setRoutineName}
                 />
               </View>
-              
+
               <View className="flex-row items-center">
                 <View className="bg-white/5 p-2 rounded-lg mr-3">
                   <AlignLeft size={16} color="#999" />
@@ -187,7 +222,6 @@ export default function CreateRoutineScreen() {
                 {t('create_routine.add_exercise')}
               </Text>
             </TouchableOpacity>
-            
           </ScrollView>
         </KeyboardAvoidingView>
       </View>

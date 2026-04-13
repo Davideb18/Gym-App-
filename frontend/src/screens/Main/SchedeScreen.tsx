@@ -1,17 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-} from 'react-native';
+import { View, TouchableOpacity, ScrollView, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { Plus, Dumbbell, History, Users, Layout, ChevronRight } from 'lucide-react-native';
+import { Plus } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../api/supabaseClient';
@@ -20,6 +12,9 @@ import ExerciseLibrary from '../../components/exercises/ExerciseLibrary';
 import { WorkoutService } from '../../api/workoutService';
 import { WorkoutTemplate } from '../../../../shared/types';
 import PremiumModal from '../../components/ui/PremiumModal';
+import ScreenHeader from '../../components/ui/ScreenHeader';
+import SchedeQuickActions from '../../components/schede/SchedeQuickActions';
+import SchedeTemplatesList from '../../components/schede/SchedeTemplatesList';
 
 import { useWorkoutPreviewStore } from '../../store/useWorkoutPreviewStore';
 import { useCreateRoutineStore } from '../../store/useCreateRoutineStore';
@@ -32,7 +27,7 @@ export default function SchedeScreen() {
   const userId = session?.user?.id;
   const [isPremium, setIsPremium] = useState(false);
   const [isLoadingPremium, setIsLoadingPremium] = useState(false);
-  
+
   const [isWikiOpen, setIsWikiOpen] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
 
@@ -71,7 +66,9 @@ export default function SchedeScreen() {
     };
 
     loadPremiumStatus();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [userId]);
 
   const openCreateRoutineFlow = () => {
@@ -90,36 +87,32 @@ export default function SchedeScreen() {
   };
 
   const handleDeleteRoutine = (templateId: string, templateName: string) => {
-    Alert.alert(
-      t('workouts.delete_title'),
-      t('workouts.delete_confirm', { name: templateName }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { 
-          text: t('common.delete'), 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await WorkoutService.deleteTemplate(templateId, userId!);
-              await refetchTemplates();
-            } catch (err: any) {
-              Alert.alert(t('common.error'), err?.message || t('workouts.delete_error'));
-            }
+    Alert.alert(t('workouts.delete_title'), t('workouts.delete_confirm', { name: templateName }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await WorkoutService.deleteTemplate(templateId, userId!);
+            await refetchTemplates();
+          } catch (err: any) {
+            Alert.alert(t('common.error'), err?.message || t('workouts.delete_error'));
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
-  const { 
-    data: templates, 
+  const {
+    data: templates,
     isLoading: isLoadingTemplates,
     isError: isTemplatesError,
-    refetch: refetchTemplates
+    refetch: refetchTemplates,
   } = useQuery<WorkoutTemplateRow[]>({
     queryKey: ['templates', userId],
     queryFn: async () => {
-      if(!userId) return [];
+      if (!userId) return [];
       const { data, error } = await supabase
         .from('workout_templates')
         .select('id, name, description, created_at')
@@ -142,138 +135,69 @@ export default function SchedeScreen() {
   return (
     <View className="flex-1 bg-black">
       <StatusBar style="light" />
-      
+
       {/* Sfondo Unificato Ibrido (Nero -> Grigio Chiaro) */}
-      <LinearGradient colors={['#171717', '#D1D5DB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+      <LinearGradient
+        colors={['#171717', '#D1D5DB']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', width: '100%', height: '100%' }}
+      />
 
       <SafeAreaView className="flex-1">
-        <ScrollView 
-          className="px-5 pt-10"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />}
+        <ScrollView
+          className="px-5 pt-8"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
+          }
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 140 }}
+          contentContainerStyle={{ paddingBottom: 240 }}
         >
           {/* HEADER */}
-          <View className="flex-row justify-between items-end mb-12">
-            <View>
-              <View className="flex-row items-center">
-                <Text className="text-white text-3xl font-[1000] tracking-tighter">THE</Text>
-                <View className="ml-1 bg-[#10B981] px-1.5 py-0.5 rounded shadow-sm shadow-green-900/50">
-                  <Text className="text-black text-xl font-black italic">LAB</Text>
-                </View>
-              </View>
-              <Text className="text-gray-500 font-bold uppercase text-[10px] tracking-[3px] mt-1 ml-1">
-                {t('workouts.templates_title')}
-              </Text>
-            </View>
-            <TouchableOpacity 
-              onPress={openCreateRoutineFlow}
-              className="bg-white/10 p-3.5 rounded-2xl shadow-xl border border-white/5" 
-              activeOpacity={0.8}
-            >
-              <Plus size={24} color="white" strokeWidth={3} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Azioni Rapide */}
-          <View className="flex-row justify-between mb-12 gap-x-4">
-            <TouchableOpacity               
+          <ScreenHeader
+            subtitle={t('workouts.templates_title')}
+            rightAction={
+              <TouchableOpacity
                 onPress={openCreateRoutineFlow}
-                className="items-center bg-black/60 p-4 rounded-3xl border border-white/5 flex-1 shadow-lg"
-                activeOpacity={0.7}
-            >
-              <View className="bg-white/5 p-2 rounded-xl mb-2 border border-white/5">
-                <Dumbbell size={18} color="#10B981" />
-              </View>
-              <Text className="text-white text-[10px] font-black uppercase tracking-widest">{t('workouts.custom')}</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity className="items-center bg-black/60 p-4 rounded-3xl border border-white/5 flex-1 shadow-lg">
-              <View className="bg-white/5 p-2 rounded-xl mb-2 border border-white/5">
-                <Layout size={18} color="#3B82F6" />
-              </View>
-              <Text className="text-white text-[10px] font-black uppercase tracking-widest">{t('workouts.ai_gen')}</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              onPress={() => setIsWikiOpen(true)}
-              className="items-center bg-black/60 p-4 rounded-3xl border border-white/5 flex-1 shadow-lg"
-              activeOpacity={0.7}
-            >
-              <View className="bg-white/5 p-2 rounded-xl mb-2 border border-white/5">
-                <Users size={18} color="#8B5CF6" />
-              </View>
-              <Text className="text-white text-[10px] font-black uppercase tracking-widest">{t('workouts.exercise')}</Text>
-            </TouchableOpacity>
-          </View>
+                className="bg-white/10 p-3.5 rounded-2xl shadow-xl border border-white/5"
+                activeOpacity={0.8}
+              >
+                <Plus size={24} color="white" strokeWidth={3} />
+              </TouchableOpacity>
+            }
+          />
 
-          {/* Lista delle Schede Create */}
-          <View>
-            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mb-6 ml-1">
-              {t('workouts.my_routines')}
-            </Text>
+          <SchedeQuickActions
+            customLabel={t('workouts.custom')}
+            aiLabel={t('workouts.ai_gen')}
+            exerciseLabel={t('workouts.exercise')}
+            onOpenCreate={openCreateRoutineFlow}
+            onOpenLibrary={() => setIsWikiOpen(true)}
+          />
 
-            {isLoadingTemplates ? (
-              <ActivityIndicator color="#10B981" />
-            ) : isTemplatesError ? (
-              <View className="bg-black/60 border border-red-500/20 rounded-[32px] p-6 mb-5 items-center">
-                  <Text className="text-red-400 font-bold text-center mb-4">Error loading routines</Text>
-                  <TouchableOpacity onPress={() => refetchTemplates()} className="bg-red-500/20 px-4 py-2 rounded-xl border border-red-500/30" activeOpacity={0.8}>
-                    <Text className="text-red-400 font-bold">{t('common.retry')}</Text>
-                  </TouchableOpacity>
-                </View>
-            ) : (
-              <View>
-                {templates?.map((template) => (
-                  <TouchableOpacity 
-                    key={template.id} 
-                    className="bg-black/60 border border-white/5 rounded-[32px] p-6 mb-5 flex-row items-center shadow-2xl" 
-                    activeOpacity={0.7}
-                    onPress={() => openRoutine(template.id)}
-                    onLongPress={() => handleDeleteRoutine(template.id, template.name)}
-                  >
-                    <View className="bg-[#10B981]/10 p-4 rounded-2xl mr-5 border border-[#10B981]/20 shadow-md">
-                      <Dumbbell size={22} color="#10B981" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white font-black text-xl tracking-tight">{template.name}</Text>
-                      {template.description ? <Text className="text-gray-500 font-bold text-xs mt-1" numberOfLines={1}>{template.description}</Text> : null}
-                    </View>
-                    <View className="bg-white/5 p-2 rounded-full">
-                      <ChevronRight size={18} color="#6B7280" strokeWidth={3} />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-
-                <TouchableOpacity
-                  onPress={openCreateRoutineFlow}
-                  activeOpacity={0.8}
-                  className="bg-black/40 border border-dashed border-white/20 rounded-[40px] p-12 items-center mb-5"
-                >
-                  <View className="bg-white/5 p-5 rounded-full mb-4 border border-white/5">
-                    <Plus size={32} color="#fff" />
-                  </View>
-                  <Text className="text-gray-400 text-center font-bold text-sm uppercase tracking-widest leading-loose">
-                    {templates?.length === 0 ? t('workouts.no_routines') : t('workouts.add_new')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-          </View>
+          <SchedeTemplatesList
+            loading={isLoadingTemplates}
+            isError={!!isTemplatesError}
+            templates={templates || []}
+            title={t('workouts.my_routines')}
+            retryLabel={t('common.retry')}
+            addLabel={t('workouts.add_new')}
+            emptyLabel={t('workouts.no_routines')}
+            onRetry={() => refetchTemplates()}
+            onOpenTemplate={openRoutine}
+            onLongPressTemplate={handleDeleteRoutine}
+            onOpenCreate={openCreateRoutineFlow}
+          />
         </ScrollView>
       </SafeAreaView>
 
-       <ExerciseLibrary 
-        visible={isWikiOpen} 
-        onClose={() => setIsWikiOpen(false)}
-      />
+      <ExerciseLibrary visible={isWikiOpen} onClose={() => setIsWikiOpen(false)} />
 
-      <PremiumModal 
-        visible={isPremiumModalOpen} 
-        onClose={() => setIsPremiumModalOpen(false)} 
+      <PremiumModal
+        visible={isPremiumModalOpen}
+        onClose={() => setIsPremiumModalOpen(false)}
         onUpgrade={() => {
-          Alert.alert("Premium", "Logica di upgrade in arrivo!");
+          Alert.alert('Premium', 'Logica di upgrade in arrivo!');
           setIsPremiumModalOpen(false);
         }}
       />

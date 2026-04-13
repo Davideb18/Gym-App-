@@ -23,6 +23,8 @@ import ExerciseDetailModal from './src/components/exercises/ExerciseDetailModal'
 import WorkoutPreviewScreen from './src/components/workout/WorkoutPreviewScreen';
 import CreateRoutineScreen from './src/components/schede/CreateRoutineScreen';
 import WorkoutSummaryScreen from './src/components/workout/WorkoutSummaryScreen';
+import WorkoutSessionRecapScreen from './src/components/workout/WorkoutSessionRecapScreen';
+import PrCelebrationModal from './src/components/workout/PrCelebrationModal';
 import { Home, Layout, History, User } from 'lucide-react-native';
 import { useActiveWorkout } from './src/store/useActiveWorkout';
 import { useNavigationStore } from './src/store/useNavigationStore';
@@ -56,7 +58,6 @@ export default function App() {
     // 3. Gestisci Deep Links (per quando l'app è chiusa o in background)
     const handleDeepLink = (url: string | null) => {
       if (!url) return;
-      const parsed = Linking.parse(url);
       // Se l'URL contiene hash con access_token e type=recovery, Supabase lo gestirà in onAuthStateChange
       // Ma forziamo il cambio di UI per sicurezza
       if (url.includes('type=recovery') || url.includes('reset-password')) {
@@ -71,7 +72,7 @@ export default function App() {
       subscription.unsubscribe();
       linkingSubscription.remove();
     };
-  }, []);
+  }, [setAuth]);
 
   const renderAuthScreen = () => {
     switch (authMode) {
@@ -100,7 +101,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <View className="flex-1 bg-white">
+      <View className="flex-1 bg-[#0A0A0A]">
         {session && authMode !== 'reset-password' ? (
           <View className="flex-1 bg-[#0A0A0A]">
             {renderScreen()}
@@ -144,7 +145,9 @@ export default function App() {
             {/* FULL SCREENS GLOBALI (Sostituiscono le modali di React Native) */}
             <WorkoutPreviewScreen />
             <CreateRoutineScreen />
+            <WorkoutSessionRecapScreen />
             <WorkoutSummaryScreen />
+            <PrCelebrationModal />
 
           </View>
         ) : (
