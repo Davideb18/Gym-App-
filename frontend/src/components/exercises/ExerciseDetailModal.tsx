@@ -71,7 +71,6 @@ export default function ExerciseDetailModal() {
     }
   };
 
-  // Riferimenti dal Database originati dallo scraper MuscleWiki 
   const initialVideoUrl = baseInfo?.video_url || null;
   const realImageUrl = baseInfo?.image_url || null;
   const secondaryMuscles = baseInfo?.secondary_muscles || null;

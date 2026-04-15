@@ -20,12 +20,5 @@ export const ExerciseService = {
 
     if (error) throw error;
     return data as Exercise[];
-  },
-
-  // Esempio di funzione che useremo poi per MuscleWiki (chiamerà il server/db)
-  syncFromMuscleWiki: async () => {
-    // In futuro qui chiamerai RapidAPI o il tuo backend Edge Function
-    // per scaricare un esercizio mancante e salvarlo su Supabase
-    console.log("Sincronizzazione da MuscleWiki in arrivo...");
   }
 };

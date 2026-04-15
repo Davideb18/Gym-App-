@@ -35,7 +35,6 @@ create table if not exists public.exercises (
   instructions text,
   image_url text,
   video_url text,
-  musclewiki_id text,
   is_premium_only boolean not null default false,
   difficulty text,
   created_at timestamptz not null default now()
@@ -46,7 +45,6 @@ alter table public.exercises add column if not exists equipment text;
 alter table public.exercises add column if not exists instructions text;
 alter table public.exercises add column if not exists image_url text;
 alter table public.exercises add column if not exists video_url text;
-alter table public.exercises add column if not exists musclewiki_id text;
 alter table public.exercises add column if not exists is_premium_only boolean not null default false;
 alter table public.exercises add column if not exists difficulty text;
 

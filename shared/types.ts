@@ -35,7 +35,6 @@ export interface Exercise {
   instructions?: string | null;
   image_url?: string | null;
   video_url?: string | null;
-  musclewiki_id?: string | null;
   is_custom?: boolean;
   profile_id?: string | null;
   is_premium_only?: boolean;
