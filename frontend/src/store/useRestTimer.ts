@@ -5,7 +5,7 @@ interface RestTimerState {
   isActive: boolean;
   timeLeft: number;
   initialTime: number;
-  timerInterval: NodeJS.Timeout | null;
+  timerInterval: ReturnType<typeof setInterval> | null;
   // Azioni
   startTimer: (seconds: number) => void;
   stopTimer: () => void;

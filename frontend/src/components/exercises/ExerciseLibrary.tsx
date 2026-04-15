@@ -334,6 +334,7 @@ export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd
                   <ExerciseListItem
                     item={item}
                     onSelect={(selectedItem) => {
+                      onClose?.();
                       openExercise(selectedItem.id);
                     }}
                     onAdd={onExerciseAdd}

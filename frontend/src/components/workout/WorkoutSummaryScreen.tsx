@@ -1,15 +1,26 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Trophy, Flame, Share2, Crown, Activity, Clock } from 'lucide-react-native';
+import { BarChart } from 'react-native-gifted-charts';
+import { Trophy, Flame, Share2, Crown, Activity, Clock, Sparkles, Target, Dumbbell } from 'lucide-react-native';
 import { useWorkoutSummaryStore } from '../../store/useWorkoutSummaryStore';
 import { useTranslation } from 'react-i18next';
 
 export default function WorkoutSummaryScreen() {
   const { t } = useTranslation();
   const { isOpen, summaryData, closeSummary } = useWorkoutSummaryStore();
+  const { width } = Dimensions.get('window');
 
   if (!isOpen || !summaryData) return null;
+
+  const newPrs = summaryData.newPrs || [];
+  const muscleGroups = summaryData.muscleGroups || [];
+  const coachTips = summaryData.coachTips || [];
+  const barData = (summaryData.exerciseVolumeBars || []).map((entry, index) => ({
+    value: entry.value,
+    label: entry.label,
+    frontColor: ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#F97316'][index % 6],
+  }));
 
   return (
     <View className="absolute inset-0 z-[200] elevation-[200]">
@@ -80,24 +91,136 @@ export default function WorkoutSummaryScreen() {
             </View>
           </View>
 
-          {/* CORPO / MUSCOLI (DUMMY PLACEHOLDER) */}
-          <View className="bg-black/60 rounded-[32px] p-6 mb-8 border border-white/5 items-center">
-            <Text className="text-white font-black text-lg mb-4 text-center tracking-tight">
-              {t('summary.muscle_map')}
+          <View className="bg-black/60 rounded-[32px] p-6 mb-8 border border-white/5">
+            <Text className="text-white font-black text-lg mb-2 text-center tracking-tight">
+              {t('summary.record_block')}
             </Text>
-            {/* Dummy Figure */}
-            <View className="w-full h-48 bg-white/5 rounded-2xl border border-dashed border-white/10 items-center justify-center">
-              <Text className="text-4xl mb-2">🧍‍♂️</Text>
-              <Text className="text-gray-500 font-bold text-xs uppercase tracking-widest text-center">
+            <Text className="text-white/70 text-xs font-semibold text-center mb-5">
+              {newPrs.length > 0 ? `${newPrs.length} ${t('summary.new_pr')}` : t('summary.no_new_records')}
+            </Text>
+
+            {newPrs.length > 0 ? (
+              <View className="gap-y-3">
+                {newPrs.map((record, idx) => (
+                  <View key={`${record.exerciseName}-${idx}`} className="bg-black/40 rounded-2xl p-4 border border-yellow-500/20">
+                    <View className="flex-row items-center justify-between mb-2">
+                      <View className="flex-row items-center flex-1 pr-2">
+                        <Crown size={14} color="#EAB308" />
+                        <Text className="text-white font-black text-base ml-2 flex-1" numberOfLines={1}>
+                          {record.exerciseName}
+                        </Text>
+                      </View>
+                      <View className="bg-yellow-500/20 px-2 py-1 rounded border border-yellow-500/30">
+                        <Text className="text-yellow-400 font-black text-[10px] uppercase tracking-[1px]">
+                          PR
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="text-white/90 font-bold text-sm">
+                      {record.weight} kg x {record.reps}
+                    </Text>
+                    <Text className="text-white/60 font-bold text-xs mt-1">
+                      e1RM {record.e1rm.toFixed(1)} kg
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View className="items-center py-4">
+                <Sparkles size={18} color="#10B981" />
+                <Text className="text-white/80 font-bold text-sm mt-2 text-center">
+                  {t('summary.no_new_records')}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View className="bg-black/60 rounded-[32px] p-6 mb-8 border border-white/5">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-white font-black text-lg tracking-tight">
+                {t('summary.improvement_chart')}
+              </Text>
+              <Text className="text-white/60 font-bold text-[10px] uppercase tracking-[1px]">
+                {t('summary.chart_hint')}
+              </Text>
+            </View>
+
+            {barData.length > 0 ? (
+              <BarChart
+                data={barData}
+                width={Math.max(260, width - 96)}
+                height={180}
+                barWidth={22}
+                spacing={12}
+                noOfSections={4}
+                hideRules
+                yAxisColor="transparent"
+                xAxisColor="rgba(255,255,255,0.12)"
+                yAxisTextStyle={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 'bold' }}
+                xAxisLabelTextStyle={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 'bold' }}
+                isAnimated
+                roundedTop
+              />
+            ) : (
+              <Text className="text-white/70 text-sm">{t('summary.no_new_records')}</Text>
+            )}
+          </View>
+
+          <View className="bg-black/60 rounded-[32px] p-6 mb-8 border border-white/5">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-white font-black text-lg tracking-tight">
+                {t('summary.muscle_focus')}
+              </Text>
+              <Target size={18} color="#10B981" />
+            </View>
+
+            <View className="bg-white/5 rounded-[28px] border border-white/10 p-4 mb-4 items-center justify-center">
+              <Text className="text-5xl mb-2">🧍‍♂️</Text>
+              <Text className="text-white/70 text-[10px] font-black uppercase tracking-[2px] text-center">
                 {t('summary.model_coming_soon')}
               </Text>
-              <Text className="text-[#10B981] text-[10px] font-black mt-2 bg-[#10B981]/20 px-3 py-1 rounded-full uppercase">
-                {t('exercises.target_muscle_group_mixed')}
-              </Text>
+            </View>
+
+            <View className="flex-row flex-wrap gap-2">
+              {muscleGroups.length > 0 ? (
+                muscleGroups.map((group) => (
+                  <View
+                    key={group.name}
+                    className="px-3 py-2 rounded-full border"
+                    style={{ borderColor: `${group.color}40`, backgroundColor: `${group.color}20` }}
+                  >
+                    <Text className="text-white font-black text-[10px] uppercase tracking-[1px]">
+                      {group.name} · {group.count}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-white/70 text-sm">{t('summary.model_coming_soon')}</Text>
+              )}
             </View>
           </View>
 
-          {/* LISTA ESERCIZI & PR */}
+          <View className="bg-black/60 rounded-[32px] p-6 mb-8 border border-white/5">
+            <Text className="text-white font-black text-lg mb-4 tracking-tight">
+              {t('summary.coach_tips')}
+            </Text>
+
+            {coachTips.length > 0 ? (
+              <View className="gap-y-3">
+                {coachTips.map((tip, idx) => (
+                  <View key={`${tip}-${idx}`} className="flex-row items-start bg-black/30 rounded-2xl p-4 border border-white/5">
+                    <View className="w-8 h-8 rounded-full bg-[#10B981]/20 items-center justify-center mr-3 border border-[#10B981]/20">
+                      <Dumbbell size={14} color="#10B981" />
+                    </View>
+                    <Text className="text-white/90 text-sm flex-1 leading-5">{tip}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text className="text-white/70 text-sm">{t('summary.no_new_records')}</Text>
+            )}
+          </View>
+
           <View className="mb-10">
             <Text className="text-gray-400 font-black text-xs uppercase tracking-[4px] mb-4 ml-2">
               {t('summary.progress')}
@@ -111,12 +234,14 @@ export default function WorkoutSummaryScreen() {
                   <View className="w-8 h-8 rounded-full bg-white/10 items-center justify-center mr-3 border border-white/10">
                     <Text className="text-white font-bold text-xs">{ex.setsCompleted}</Text>
                   </View>
-                  <Text
-                    className="text-white font-bold text-sm tracking-tight flex-1"
-                    numberOfLines={1}
-                  >
-                    {ex.name}
-                  </Text>
+                  <View className="flex-1">
+                    <Text className="text-white font-bold text-sm tracking-tight" numberOfLines={1}>
+                      {ex.name}
+                    </Text>
+                    <Text className="text-white/50 font-semibold text-[10px] uppercase tracking-[1px] mt-1">
+                      {ex.totalVolume.toLocaleString()} kg
+                    </Text>
+                  </View>
                 </View>
 
                 {idx % 2 === 0 ? (

@@ -12,6 +12,7 @@ import { History } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { WorkoutService } from '../../api/workoutService';
+import { MediaService } from '../../api/mediaService';
 import { useExerciseModal } from '../../store/useExerciseModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import ExerciseDetailHeader from './detail/ExerciseDetailHeader';
@@ -56,7 +57,7 @@ export default function ExerciseDetailModal() {
   if (!isOpen) return null;
 
   const exName = baseInfo?.name || t('common.loading');
-  const exMuscle = baseInfo?.target_muscle_group || t('exercises.target_muscle_group_mixed');
+  const exMuscle = baseInfo?.target_muscle_group || baseInfo?.target_muscle || t('exercises.target_muscle_group_mixed');
   const exEquipment = baseInfo?.equipment || t('exercises.equipment_bodyweight');
   const instructions = baseInfo?.instructions || '';
 
@@ -70,7 +71,13 @@ export default function ExerciseDetailModal() {
     }
   };
 
-  const mockupVideoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
+  // Riferimenti dal Database originati dallo scraper MuscleWiki 
+  const initialVideoUrl = baseInfo?.video_url || null;
+  const realImageUrl = baseInfo?.image_url || null;
+  const secondaryMuscles = baseInfo?.secondary_muscles || null;
+  const difficulty = baseInfo?.difficulty || null;
+  const force = baseInfo?.force || null;
+  const mechanic = baseInfo?.mechanic || null;
 
   return (
     <View className="absolute inset-0 z-[105] elevation-[105]">
@@ -142,8 +149,17 @@ export default function ExerciseDetailModal() {
           >
             {activeTab === 'descrizione' && (
               <ExerciseDescriptionContent
-                videoUrl={mockupVideoUrl}
+                initialVideoUrl={initialVideoUrl}
+                imageUrl={realImageUrl}
+                onRequestVideo={async () => {
+                  if (!selectedExerciseId) return null;
+                  return MediaService.getVideoUrlForExercise(selectedExerciseId);
+                }}
                 instructions={instructions}
+                secondaryMuscles={secondaryMuscles}
+                difficulty={difficulty}
+                force={force}
+                mechanic={mechanic}
                 noInstructionsLabel={t('exercises.no_instructions')}
                 instructionsTitle={t('exercises.instructions_title')}
                 historyData={historySessions || []}

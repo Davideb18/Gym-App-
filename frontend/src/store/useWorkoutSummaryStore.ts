@@ -4,7 +4,11 @@ interface WorkoutSummaryData {
   timeString: string;
   totalVolume: number;
   completedSets: number;
-  exercises: { name: string; setsCompleted: number; record?: string }[];
+  exercises: { name: string; setsCompleted: number; totalVolume: number }[];
+  exerciseVolumeBars?: { label: string; value: number }[];
+  newPrs?: { exerciseName: string; weight: number; reps: number; e1rm: number }[];
+  muscleGroups?: { name: string; count: number; color: string }[];
+  coachTips?: string[];
   routineName: string;
 }
 

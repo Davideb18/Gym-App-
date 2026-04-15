@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, Image, Text } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { Play, VolumeX, Volume2 } from 'lucide-react-native';
+import { Play, VolumeX, Volume2, Video } from 'lucide-react-native';
 
 interface ExerciseVideoPlayerProps {
-  videoUrl: string;
+  initialVideoUrl?: string | null;
+  imageUrl?: string | null;
+  onRequestVideo?: () => Promise<string | null>;
 }
 
-export default function ExerciseVideoPlayer({ videoUrl }: ExerciseVideoPlayerProps) {
+function VideoPlayerRenderer({ videoUrl }: { videoUrl: string }) {
   const player = useVideoPlayer(videoUrl, (p) => {
     p.loop = true;
     p.muted = true;
@@ -37,7 +39,7 @@ export default function ExerciseVideoPlayer({ videoUrl }: ExerciseVideoPlayerPro
   };
 
   return (
-    <View className="w-full h-56 bg-black rounded-[32px] overflow-hidden border border-white/5 shadow-lg relative">
+    <View className="flex-1 relative">
       <VideoView
         player={player}
         style={{ width: '100%', height: '100%' }}
@@ -45,11 +47,11 @@ export default function ExerciseVideoPlayer({ videoUrl }: ExerciseVideoPlayerPro
         nativeControls={false}
       />
 
-      {isBuffering ? (
+      {isBuffering && (
         <View className="absolute inset-0 items-center justify-center bg-black/30">
           <ActivityIndicator size="large" color="#10B981" />
         </View>
-      ) : null}
+      )}
 
       <View className="absolute inset-0 justify-between p-3" pointerEvents="box-none">
         <View className="flex-row justify-end" pointerEvents="box-none">
@@ -73,6 +75,84 @@ export default function ExerciseVideoPlayer({ videoUrl }: ExerciseVideoPlayerPro
           ) : null}
         </TouchableOpacity>
       </View>
+    </View>
+  );
+}
+
+export default function ExerciseVideoPlayer({
+  initialVideoUrl,
+  imageUrl,
+  onRequestVideo,
+}: ExerciseVideoPlayerProps) {
+  const [loadVideo, setLoadVideo] = useState(false);
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(initialVideoUrl || null);
+  const [isRequestingVideo, setIsRequestingVideo] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  const handleLoadVideo = async () => {
+    if (loadVideo || isRequestingVideo) {
+      return;
+    }
+
+    if (resolvedVideoUrl) {
+      console.log('✅ Video URL già presente, avvio player:', resolvedVideoUrl);
+      setLoadVideo(true);
+      return;
+    }
+
+    if (!onRequestVideo) {
+      setRequestError('Video non disponibile');
+      return;
+    }
+
+    try {
+      setIsRequestingVideo(true);
+      setRequestError(null);
+      console.log('🔍 Richiesta nuovo video URL al backend...');
+      const videoUrl = await onRequestVideo();
+      console.log('📡 Risposta backend videoUrl:', videoUrl);
+
+      if (!videoUrl) {
+        setRequestError('Video non disponibile');
+        return;
+      }
+
+      setResolvedVideoUrl(videoUrl);
+      setLoadVideo(true);
+    } catch (error: any) {
+      console.error('❌ Errore durante onRequestVideo:', error);
+      setRequestError(`Errore connessione: ${error.message || 'Server non raggiungibile'}`);
+    } finally {
+      setIsRequestingVideo(false);
+    }
+  };
+
+  return (
+    <View className="w-full h-80 bg-black rounded-[32px] overflow-hidden border border-white/5 shadow-lg relative justify-center items-center">
+      {loadVideo && resolvedVideoUrl ? (
+        <VideoPlayerRenderer videoUrl={resolvedVideoUrl} />
+      ) : (
+        <>
+          {imageUrl ? (
+            <Image source={{ uri: imageUrl }} className="absolute inset-0 w-full h-full opacity-60" resizeMode="cover" />
+          ) : null}
+          <TouchableOpacity 
+            onPress={handleLoadVideo}
+            activeOpacity={0.8}
+            className="items-center justify-center bg-black/70 px-6 py-4 rounded-3xl border border-white/20 flex-row"
+          >
+            {isRequestingVideo ? (
+              <ActivityIndicator size="small" color="#10B981" />
+            ) : (
+              <Video size={20} color="#10B981" />
+            )}
+            <Text className="font-bold ml-2 text-white">
+              {isRequestingVideo ? 'Caricamento video...' : 'Avvia il video'}
+            </Text>
+          </TouchableOpacity>
+          {requestError ? <Text className="text-red-300 text-xs mt-3">{requestError}</Text> : null}
+        </>
+      )}
     </View>
   );
 }

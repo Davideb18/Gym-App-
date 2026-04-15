@@ -16,6 +16,7 @@ import { ProgressionService } from '../../services/progressionService';
 import ProfileStatsGrid from '../../components/profile/ProfileStatsGrid';
 import ProfilePrList from '../../components/profile/ProfilePrList';
 import LanguageSelectorModal from '../../components/profile/LanguageSelectorModal';
+import { ProfileWorkoutAnalytics } from '../../components/profile';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
@@ -46,35 +47,43 @@ export default function ProfileScreen() {
     queryKey: ['personalRecords', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('performed_sets')
+        .from('workout_sessions')
         .select(
           `
-          weight,
-          reps,
-          exercises(id, name, target_muscle_group, equipment, instructions),
-          workout_sessions!inner(profile_id)
+          id,
+          completed_at,
+          performed_sets(
+            weight,
+            reps,
+            is_completed,
+            exercises(id, name, target_muscle_group, equipment, instructions)
+          )
         `,
         )
-        .eq('workout_sessions.profile_id', user!.id)
-        .order('weight', { ascending: false })
+        .eq('profile_id', user!.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false })
         .limit(200);
 
       if (error || !data) return [];
 
-      const bestLifts = new Map();
-      data.forEach((set: any) => {
-        const ex = set.exercises;
-        const w = Number(set.weight) || 0;
-        if (ex?.name && w > 0) {
-          if (!bestLifts.has(ex.name)) {
-            bestLifts.set(ex.name, { weight: w, reps: set.reps, exercise: ex });
-          } else {
-            if (w > bestLifts.get(ex.name).weight) {
-              bestLifts.set(ex.name, { weight: w, reps: set.reps, exercise: ex });
-            }
+      const bestLifts = new Map<string, { weight: number; reps: number; exercise: any }>();
+      data.forEach((session: any) => {
+        (session?.performed_sets || []).forEach((set: any) => {
+          if (!set?.is_completed) return;
+
+          const ex = set.exercises;
+          const w = Number(set.weight) || 0;
+          const reps = Number(set.reps) || 0;
+          if (!ex?.name || w <= 0) return;
+
+          const prev = bestLifts.get(ex.name);
+          if (!prev || w > prev.weight || (w === prev.weight && reps > prev.reps)) {
+            bestLifts.set(ex.name, { weight: w, reps, exercise: ex });
           }
-        }
+        });
       });
+
       return Array.from(bestLifts.entries())
         .map(([name, stats]: any) => ({
           name,
@@ -82,8 +91,7 @@ export default function ProfileScreen() {
           reps: stats.reps,
           exercise: stats.exercise,
         }))
-        .sort((a, b) => b.weight - a.weight)
-        .slice(0, 3);
+        .sort((a, b) => b.weight - a.weight);
     },
     enabled: !!user?.id,
   });
@@ -108,7 +116,7 @@ export default function ProfileScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('workout_sessions')
-        .select('total_volume, completed_at')
+        .select('total_volume, duration_seconds, completed_at')
         .eq('profile_id', user!.id)
         .eq('status', 'completed')
         .order('completed_at', { ascending: false });
@@ -198,6 +206,21 @@ export default function ProfileScreen() {
             prsLabel={t('profile.prs_set')}
             levelLabel={t('profile.level')}
           />
+
+            <ProfileWorkoutAnalytics
+              sessions={progressionSessions || []}
+              title={t('profile.analytics_title')}
+              trendTitle={t('profile.duration_trend_title')}
+              reportTitle={t('profile.monthly_report_title')}
+              thisMonthLabel={t('profile.this_month')}
+              lastMonthLabel={t('profile.last_month')}
+              sessionsLabel={t('profile.sessions_label')}
+              durationLabel={t('profile.duration_label')}
+              volumeLabel={t('profile.volume_label')}
+              avgDurationLabel={t('profile.avg_duration_label')}
+              noDataLabel={t('profile.no_workout_data')}
+              compareLabel={t('profile.compare_to_last_month')}
+            />
 
           {/* Menu Impostazioni */}
           <Text className="text-white text-[10px] font-black uppercase tracking-[4px] mb-4 mt-2 px-1">
