@@ -1,4 +1,5 @@
 import { View, TouchableOpacity } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
@@ -20,6 +21,7 @@ import ProfileScreen from './src/screens/Main/ProfileScreen';
 import ActiveWorkoutScreen from './src/screens/Main/ActiveWorkoutScreen';
 import SmartWorkoutWidget from './src/components/workout/SmartWorkoutWidget';
 import ExerciseDetailModal from './src/components/exercises/ExerciseDetailModal';
+import FormCoachScreen from './src/components/formCoach/FormCoachScreen';
 import WorkoutPreviewScreen from './src/components/workout/WorkoutPreviewScreen';
 import CreateRoutineScreen from './src/components/schede/CreateRoutineScreen';
 import WorkoutSummaryScreen from './src/components/workout/WorkoutSummaryScreen';
@@ -100,8 +102,9 @@ export default function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <View className="flex-1 bg-[#0A0A0A]">
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <View className="flex-1 bg-[#0A0A0A]">
         {session && authMode !== 'reset-password' ? (
           <View className="flex-1 bg-[#0A0A0A]">
             {renderScreen()}
@@ -141,6 +144,7 @@ export default function App() {
 
             {/* MODALE DETTAGLI ESERCIZIO GLOBALE (Sotto i Full Screens) */}
             <ExerciseDetailModal />
+            <FormCoachScreen />
 
             {/* FULL SCREENS GLOBALI (Sostituiscono le modali di React Native) */}
             <WorkoutPreviewScreen />
@@ -153,7 +157,8 @@ export default function App() {
         ) : (
           renderAuthScreen()
         )}
-      </View>
-    </QueryClientProvider>
+        </View>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

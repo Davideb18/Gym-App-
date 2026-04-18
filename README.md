@@ -11,26 +11,34 @@ This repository is a **monorepo**, meaning it contains both the mobile applicati
 Sei nuovo nel progetto? Ecco come configurare tutto sul tuo computer in pochi minuti.
 
 ### 1. Prerequisiti
+
 Assicurati di avere installato:
+
 - **Node.js** (Versione 18 o superiore): [Scarica qui](https://nodejs.org/)
 - **Git**: [Scarica qui](https://git-scm.com/)
 - **Expo Go** (App sul tuo telefono): Scaricala da App Store o Google Play per testare l'app.
 
 ### 2. Clonazione del Progetto
+
 Apri il terminale e scrivi:
+
 ```bash
 git clone https://github.com/Davideb18/Gym-App-.git
 cd "Gym App"
 ```
 
 ### 3. Installazione Unificata
+
 Installa tutte le dipendenze per frontend e backend con un solo comando:
+
 ```bash
 npm install
 ```
 
 ### 4. Configurazione Ambiente (.env)
+
 Il progetto include già i file `.env` necessari per connettersi al database di test e a Supabase. Non devi cambiare nulla, ma assicurati che esistano questi file:
+
 - `frontend/.env` (Contiene le chiavi Supabase)
 - `backend/.env` (Contiene la connessione al Database)
 
@@ -45,8 +53,37 @@ npm run dev
 ```
 
 ### Cosa Succede?
+
 1. **Frontend**: Si aprirà il server di Expo. Inquadra il QR code con la fotocamera del tuo telefono (aprendo l'app **Expo Go**) per vedere l'app dal vivo.
 2. **Backend**: Il server Express partirà sulla porta `3001` per gestire la logica avanzata e l'AI.
+
+### Uso Da Palestra (Fuori Dal Wi-Fi Del PC)
+
+Se vuoi usare l'app anche quando telefono e PC non sono sulla stessa rete locale, avvia Expo in **tunnel**:
+
+```bash
+npm run dev:tunnel
+```
+
+In questo modo il telefono puo collegarsi via internet al bundle Expo anche da remoto.
+
+Requisiti importanti:
+
+- Il PC deve restare acceso con il comando attivo.
+- Il telefono deve avere internet (rete mobile o Wi-Fi qualsiasi).
+
+### Uso Senza PC Acceso (Produzione)
+
+Per usarla da distante senza dipendere dal computer, devi installare una build standalone (APK/IPA) invece di Expo Go.
+
+Passi consigliati:
+
+1. Installa EAS CLI: `npm i -g eas-cli`
+2. Login Expo: `eas login`
+3. Dal folder frontend, crea build: `eas build --platform android` (o `--platform ios`)
+4. Installa la build sul telefono.
+
+Dopo l'installazione, l'app funziona senza il server Expo locale del PC.
 
 ---
 

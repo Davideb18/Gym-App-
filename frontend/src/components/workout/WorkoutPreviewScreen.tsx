@@ -61,8 +61,9 @@ export default function WorkoutPreviewScreen() {
 
   const handleEdit = () => {
     if (template) {
+      // Open the editor first to avoid a visible flash where preview closes before edit mounts.
+      openEdit(template);
       closePreview();
-      setTimeout(() => openEdit(template), 50);
     }
   };
 

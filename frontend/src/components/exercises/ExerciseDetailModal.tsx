@@ -12,8 +12,8 @@ import { History } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { WorkoutService } from '../../api/workoutService';
-import { MediaService } from '../../api/mediaService';
 import { useExerciseModal } from '../../store/useExerciseModal';
+import { useFormCoachStore } from '../../store/useFormCoachStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import ExerciseDetailHeader from './detail/ExerciseDetailHeader';
 import ExerciseDetailTabs from './detail/ExerciseDetailTabs';
@@ -22,6 +22,7 @@ import ExerciseHistorySessionCard from './detail/ExerciseHistorySessionCard';
 
 export default function ExerciseDetailModal() {
   const { isOpen, selectedExerciseId, closeModal } = useExerciseModal();
+  const openCoach = useFormCoachStore((s) => s.openCoach);
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<'descrizione' | 'history'>('descrizione');
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
@@ -56,10 +57,88 @@ export default function ExerciseDetailModal() {
 
   if (!isOpen) return null;
 
-  const exName = baseInfo?.name || t('common.loading');
-  const exMuscle = baseInfo?.target_muscle_group || baseInfo?.target_muscle || t('exercises.target_muscle_group_mixed');
+  const locale = i18n.language.startsWith('es')
+    ? 'es'
+    : i18n.language.startsWith('it')
+      ? 'it'
+      : 'en';
+  const exerciseNameOverrides: Record<string, Record<'it' | 'es', string>> = {
+    'hammer curl': {
+      it: 'Curl a martello',
+      es: 'Curl martillo',
+    },
+  };
+
+  const translateExerciseName = (value?: string | null) => {
+    if (!value) return null;
+    const override = exerciseNameOverrides[value.trim().toLowerCase()];
+    return override?.[locale as 'it' | 'es'] || value;
+  };
+
+  const muscleLabels: Record<string, Record<string, string>> = {
+    it: {
+      abdominals: 'Addominali',
+      abductors: 'Abduttori',
+      adductors: 'Adduttori',
+      biceps: 'Bicipiti',
+      calves: 'Polpacci',
+      chest: 'Petto',
+      forearms: 'Avambracci',
+      glutes: 'Glutei',
+      hamstrings: 'Femorali',
+      lats: 'Dorsali',
+      'lower back': 'Lombari',
+      'middle back': 'Schiena media',
+      neck: 'Collo',
+      quadriceps: 'Quadricipiti',
+      shoulders: 'Spalle',
+      traps: 'Trapezi',
+      triceps: 'Tricipiti',
+    },
+    es: {
+      abdominals: 'Abdominales',
+      abductors: 'Abductores',
+      adductors: 'Aductores',
+      biceps: 'Biceps',
+      calves: 'Pantorrillas',
+      chest: 'Pecho',
+      forearms: 'Antebrazos',
+      glutes: 'Gluteos',
+      hamstrings: 'Isquiotibiales',
+      lats: 'Dorsales',
+      'lower back': 'Lumbares',
+      'middle back': 'Espalda media',
+      neck: 'Cuello',
+      quadriceps: 'Cuadriceps',
+      shoulders: 'Hombros',
+      traps: 'Trapecios',
+      triceps: 'Triceps',
+    },
+  };
+
+  const translateMuscle = (value?: string | null) => {
+    if (!value) return t('exercises.target_muscle_group_mixed');
+    const key = value.toLowerCase().trim();
+    return muscleLabels[locale]?.[key] || value;
+  };
+
+  const exName =
+    translateExerciseName(
+      locale === 'it' ? baseInfo?.name_it : locale === 'es' ? baseInfo?.name_es : baseInfo?.name,
+    ) ||
+    translateExerciseName(baseInfo?.name) ||
+    t('common.loading');
+  const rawMuscle = baseInfo?.target_muscle_group || baseInfo?.target_muscle || null;
+  const exMuscle = translateMuscle(rawMuscle);
   const exEquipment = baseInfo?.equipment || t('exercises.equipment_bodyweight');
-  const instructions = baseInfo?.instructions || '';
+  const instructions =
+    (locale === 'it'
+      ? baseInfo?.instructions_it
+      : locale === 'es'
+        ? baseInfo?.instructions_es
+        : baseInfo?.instructions) ||
+    baseInfo?.instructions ||
+    '';
 
   const handleNotesChange = (sessionId: string, val: string) => {
     setEditingNotes((prev) => ({ ...prev, [sessionId]: val }));
@@ -71,15 +150,43 @@ export default function ExerciseDetailModal() {
     }
   };
 
-  const initialVideoUrl = baseInfo?.video_url || null;
   const realImageUrl = baseInfo?.image_url || null;
+  const parsedImageUrls = (() => {
+    const raw = baseInfo?.videos_data;
+    if (Array.isArray(raw)) {
+      return raw.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+    }
+
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      try {
+        const decoded = JSON.parse(raw);
+        if (Array.isArray(decoded)) {
+          return decoded.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  })();
   const secondaryMuscles = baseInfo?.secondary_muscles || null;
   const difficulty = baseInfo?.difficulty || null;
   const force = baseInfo?.force || null;
   const mechanic = baseInfo?.mechanic || null;
 
+  const handleOpenCoach = () => {
+    if (!selectedExerciseId) return;
+    openCoach({
+      exerciseId: selectedExerciseId,
+      exerciseName: exName,
+      mediaUrl: parsedImageUrls[0] || realImageUrl || null,
+    });
+    closeModal();
+  };
+
   return (
-    <View className="absolute inset-0 z-[105] elevation-[105]">
+    <View className="absolute inset-0 z-[130] elevation-[130]">
       <TouchableOpacity
         activeOpacity={1}
         onPress={closeModal}
@@ -147,22 +254,35 @@ export default function ExerciseDetailModal() {
             showsVerticalScrollIndicator={false}
           >
             {activeTab === 'descrizione' && (
-              <ExerciseDescriptionContent
-                initialVideoUrl={initialVideoUrl}
-                imageUrl={realImageUrl}
-                onRequestVideo={async () => {
-                  if (!selectedExerciseId) return null;
-                  return MediaService.getVideoUrlForExercise(selectedExerciseId);
-                }}
-                instructions={instructions}
-                secondaryMuscles={secondaryMuscles}
-                difficulty={difficulty}
-                force={force}
-                mechanic={mechanic}
-                noInstructionsLabel={t('exercises.no_instructions')}
-                instructionsTitle={t('exercises.instructions_title')}
-                historyData={historySessions || []}
-              />
+              <>
+                <TouchableOpacity
+                  onPress={handleOpenCoach}
+                  className="mb-4 bg-[#10B981]/20 border border-[#10B981]/35 rounded-2xl p-4"
+                >
+                  <Text className="text-[#A7F3D0] text-[10px] font-black uppercase tracking-widest mb-1">
+                    Nuova funzione
+                  </Text>
+                  <Text className="text-[#10B981] font-black text-sm uppercase tracking-widest">
+                    Coach Tecnica
+                  </Text>
+                  <Text className="text-gray-300 text-xs mt-1">
+                    Avvia analisi guidata con feedback live su postura, ripetizioni ed errori.
+                  </Text>
+                </TouchableOpacity>
+
+                <ExerciseDescriptionContent
+                  imageUrls={parsedImageUrls}
+                  imageUrl={realImageUrl}
+                  instructions={instructions}
+                  secondaryMuscles={secondaryMuscles}
+                  difficulty={difficulty}
+                  force={force}
+                  mechanic={mechanic}
+                  noInstructionsLabel={t('exercises.no_instructions')}
+                  instructionsTitle={t('exercises.instructions_title')}
+                  historyData={historySessions || []}
+                />
+              </>
             )}
 
             {activeTab === 'history' && (

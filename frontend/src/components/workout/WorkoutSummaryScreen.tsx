@@ -2,7 +2,17 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { BarChart } from 'react-native-gifted-charts';
-import { Trophy, Flame, Share2, Crown, Activity, Clock, Sparkles, Target, Dumbbell } from 'lucide-react-native';
+import {
+  Trophy,
+  Flame,
+  Share2,
+  Crown,
+  Activity,
+  Clock,
+  Sparkles,
+  Target,
+  Dumbbell,
+} from 'lucide-react-native';
 import { useWorkoutSummaryStore } from '../../store/useWorkoutSummaryStore';
 import { useTranslation } from 'react-i18next';
 
@@ -96,17 +106,25 @@ export default function WorkoutSummaryScreen() {
               {t('summary.record_block')}
             </Text>
             <Text className="text-white/70 text-xs font-semibold text-center mb-5">
-              {newPrs.length > 0 ? `${newPrs.length} ${t('summary.new_pr')}` : t('summary.no_new_records')}
+              {newPrs.length > 0
+                ? `${newPrs.length} ${t('summary.new_pr')}`
+                : t('summary.no_new_records')}
             </Text>
 
             {newPrs.length > 0 ? (
               <View className="gap-y-3">
                 {newPrs.map((record, idx) => (
-                  <View key={`${record.exerciseName}-${idx}`} className="bg-black/40 rounded-2xl p-4 border border-yellow-500/20">
+                  <View
+                    key={`${record.exerciseName}-${idx}`}
+                    className="bg-black/40 rounded-2xl p-4 border border-yellow-500/20"
+                  >
                     <View className="flex-row items-center justify-between mb-2">
                       <View className="flex-row items-center flex-1 pr-2">
                         <Crown size={14} color="#EAB308" />
-                        <Text className="text-white font-black text-base ml-2 flex-1" numberOfLines={1}>
+                        <Text
+                          className="text-white font-black text-base ml-2 flex-1"
+                          numberOfLines={1}
+                        >
                           {record.exerciseName}
                         </Text>
                       </View>
@@ -156,8 +174,16 @@ export default function WorkoutSummaryScreen() {
                 hideRules
                 yAxisColor="transparent"
                 xAxisColor="rgba(255,255,255,0.12)"
-                yAxisTextStyle={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 'bold' }}
-                xAxisLabelTextStyle={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 'bold' }}
+                yAxisTextStyle={{
+                  color: 'rgba(255,255,255,0.45)',
+                  fontSize: 10,
+                  fontWeight: 'bold',
+                }}
+                xAxisLabelTextStyle={{
+                  color: 'rgba(255,255,255,0.45)',
+                  fontSize: 10,
+                  fontWeight: 'bold',
+                }}
                 isAnimated
                 roundedTop
               />
@@ -174,13 +200,6 @@ export default function WorkoutSummaryScreen() {
               <Target size={18} color="#10B981" />
             </View>
 
-            <View className="bg-white/5 rounded-[28px] border border-white/10 p-4 mb-4 items-center justify-center">
-              <Text className="text-5xl mb-2">🧍‍♂️</Text>
-              <Text className="text-white/70 text-[10px] font-black uppercase tracking-[2px] text-center">
-                {t('summary.model_coming_soon')}
-              </Text>
-            </View>
-
             <View className="flex-row flex-wrap gap-2">
               {muscleGroups.length > 0 ? (
                 muscleGroups.map((group) => (
@@ -195,7 +214,7 @@ export default function WorkoutSummaryScreen() {
                   </View>
                 ))
               ) : (
-                <Text className="text-white/70 text-sm">{t('summary.model_coming_soon')}</Text>
+                <Text className="text-white/70 text-sm">{t('summary.no_new_records')}</Text>
               )}
             </View>
           </View>
@@ -208,7 +227,10 @@ export default function WorkoutSummaryScreen() {
             {coachTips.length > 0 ? (
               <View className="gap-y-3">
                 {coachTips.map((tip, idx) => (
-                  <View key={`${tip}-${idx}`} className="flex-row items-start bg-black/30 rounded-2xl p-4 border border-white/5">
+                  <View
+                    key={`${tip}-${idx}`}
+                    className="flex-row items-start bg-black/30 rounded-2xl p-4 border border-white/5"
+                  >
                     <View className="w-8 h-8 rounded-full bg-[#10B981]/20 items-center justify-center mr-3 border border-[#10B981]/20">
                       <Dumbbell size={14} color="#10B981" />
                     </View>

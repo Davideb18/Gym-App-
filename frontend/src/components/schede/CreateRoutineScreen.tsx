@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   TextInput,
   KeyboardAvoidingView,
   Platform,
@@ -13,9 +14,16 @@ import {
 import { X, Save, Plus, Dumbbell, AlignLeft, Layout } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { WorkoutService } from '../../api/workoutService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCreateRoutineStore } from '../../store/useCreateRoutineStore';
+import ExerciseLibrary from '../exercises/ExerciseLibrary';
+import { DraftExercise, useWorkoutCreation } from '../../hooks/useWorkoutCreation';
+import { Exercise, SetType } from '../../../../shared/types';
+import RoutineExerciseCard from './CreateRoutine/RoutineExerciseCard';
+import SetTypeSelectorModal from './CreateRoutine/SetTypeSelectorModal';
+import { useExerciseModal } from '../../store/useExerciseModal';
 
 export default function CreateRoutineScreen() {
   const { isOpen, templateToEdit, closeCreate } = useCreateRoutineStore();
@@ -23,30 +31,88 @@ export default function CreateRoutineScreen() {
 
   const { session } = useAuthStore();
   const userId = session?.user?.id;
+  const { openExercise } = useExerciseModal();
 
-  const [routineName, setRoutineName] = useState('');
-  const [routineDesc, setRoutineDesc] = useState('');
+  const {
+    name: routineName,
+    description: routineDesc,
+    exercises,
+    setName: setRoutineName,
+    setDescription: setRoutineDesc,
+    addExercise,
+    removeExercise,
+    addSet,
+    removeSet,
+    updateSetField,
+    updateExerciseNotes,
+    validate,
+    reset,
+    loadTemplate,
+    reorderExercises,
+  } = useWorkoutCreation();
+
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExerciseLibraryOpen, setIsExerciseLibraryOpen] = useState(false);
+  const [isSetTypeModalOpen, setIsSetTypeModalOpen] = useState(false);
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+  const [selectedSetRef, setSelectedSetRef] = useState<{
+    exerciseLocalId: string;
+    setLocalId: string;
+  } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       if (templateToEdit) {
-        setRoutineName(templateToEdit.name);
-        setRoutineDesc(templateToEdit.description || '');
+        loadTemplate(templateToEdit);
       } else {
-        setRoutineName('');
-        setRoutineDesc('');
+        reset();
         setLocalError(null);
       }
+      setIsReorderModalOpen(false);
     }
   }, [isOpen, templateToEdit]);
 
+  const handleAddExercise = (exercise: Exercise) => {
+    addExercise(exercise);
+    setIsExerciseLibraryOpen(false);
+  };
+
+  const handleOpenReorder = () => {
+    if (exercises.length > 1) {
+      setIsReorderModalOpen(true);
+    }
+  };
+
+  const handleCloseReorder = () => {
+    setIsReorderModalOpen(false);
+  };
+
+  const reorderDialogWidthPct = 88;
+  const reorderDialogHeightPct = Math.max(36, Math.min(74, 24 + exercises.length * 8));
+  const reorderDialogTopPct = (100 - reorderDialogHeightPct) / 2;
+  const reorderDialogLeftPct = (100 - reorderDialogWidthPct) / 2;
+
+  const handleOpenSetTypeSelector = (exerciseLocalId: string, setLocalId: string) => {
+    setSelectedSetRef({ exerciseLocalId, setLocalId });
+    setIsSetTypeModalOpen(true);
+  };
+
+  const handleSelectSetType = (setType: SetType) => {
+    if (!selectedSetRef) return;
+    updateSetField(selectedSetRef.exerciseLocalId, selectedSetRef.setLocalId, 'setType', setType);
+    setIsSetTypeModalOpen(false);
+    setSelectedSetRef(null);
+  };
+
   const handleSave = async () => {
-    if (!routineName.trim()) {
-      Alert.alert(t('common.error'), t('create_routine.name_required'));
+    const validationError = validate();
+    if (validationError) {
+      Alert.alert(t('common.error'), validationError);
       return;
     }
+    setIsReorderModalOpen(false);
+
     if (!userId) {
       Alert.alert(t('common.error'), t('create_routine.not_logged_in'));
       return;
@@ -62,7 +128,7 @@ export default function CreateRoutineScreen() {
           templateToEdit.id,
           routineName.trim(),
           routineDesc.trim() || undefined,
-          [], // esercizi gestiti dall'UI di modifica avanzata
+          exercises,
         );
         Alert.alert(t('common.success'), t('create_routine.success_updated'));
       } else {
@@ -71,7 +137,7 @@ export default function CreateRoutineScreen() {
           userId,
           routineName.trim(),
           routineDesc.trim() || undefined,
-          [],
+          exercises,
         );
         Alert.alert(t('common.success'), t('create_routine.success_created'));
       }
@@ -194,27 +260,63 @@ export default function CreateRoutineScreen() {
               </View>
             ) : null}
 
-            {/* Placeholder esercizi */}
             <View className="mb-8">
-              <Text className="text-gray-400 font-black text-[10px] uppercase tracking-[4px] mb-4 px-2">
-                {t('create_routine.exercises_label')}
-              </Text>
-              <View className="bg-white/5 border border-white/10 border-dashed rounded-[32px] p-10 items-center justify-center">
-                <View className="bg-white/10 p-4 rounded-full mb-4">
-                  <Dumbbell size={28} color="#999" />
-                </View>
-                <Text className="text-gray-400 font-bold text-center text-sm mb-1">
-                  {t('create_routine.no_exercises')}
+              <View className="flex-row items-center justify-between mb-4 px-2">
+                <Text className="text-gray-400 font-black text-[10px] uppercase tracking-[4px]">
+                  {t('create_routine.exercises_label')}
                 </Text>
-                <Text className="text-gray-600 text-xs text-center">
-                  {t('create_routine.no_exercises')}
-                </Text>
+                {exercises.length > 1 ? (
+                  <TouchableOpacity
+                    onPress={handleOpenReorder}
+                    className="px-3 py-1.5 bg-white/10 border border-white/15 rounded-full"
+                  >
+                    <Text className="text-white/90 text-[10px] font-black uppercase tracking-widest">
+                      Riordina
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
+
+              {exercises.length === 0 ? (
+                <View className="bg-white/5 border border-white/10 border-dashed rounded-[32px] p-10 items-center justify-center">
+                  <View className="bg-white/10 p-4 rounded-full mb-4">
+                    <Dumbbell size={28} color="#999" />
+                  </View>
+                  <Text className="text-gray-400 font-bold text-center text-sm mb-1">
+                    {t('create_routine.no_exercises')}
+                  </Text>
+                  <Text className="text-gray-600 text-xs text-center">
+                    {t('create_routine.no_exercises')}
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={exercises}
+                  keyExtractor={(item) => item.localId}
+                  scrollEnabled={false}
+                  renderItem={({ item, index }) => (
+                    <RoutineExerciseCard
+                      exerciseDraft={item}
+                      index={index}
+                      compactMode={false}
+                      isHighlightedDrag={false}
+                      onActivateReorder={handleOpenReorder}
+                      onOpenExerciseInfo={(exercise) => exercise?.id && openExercise(exercise.id)}
+                      removeExercise={removeExercise}
+                      updateExerciseNotes={updateExerciseNotes}
+                      addSet={addSet}
+                      removeSet={removeSet}
+                      updateSetField={updateSetField}
+                      onOpenSetTypeSelector={handleOpenSetTypeSelector}
+                    />
+                  )}
+                />
+              )}
             </View>
 
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => Alert.alert('In arrivo', 'Libreria esercizi per selezione!')}
+              onPress={() => setIsExerciseLibraryOpen(true)}
               className="bg-[#10B981]/20 border border-[#10B981]/30 rounded-3xl p-5 flex-row items-center justify-center shadow-lg"
             >
               <Plus size={20} color="#10B981" />
@@ -225,6 +327,112 @@ export default function CreateRoutineScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
+
+      {isReorderModalOpen ? (
+        <View style={{ position: 'absolute', inset: 0, zIndex: 120 }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={handleCloseReorder}
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: `${reorderDialogTopPct}%`,
+              left: `${reorderDialogLeftPct}%`,
+              width: `${reorderDialogWidthPct}%`,
+              height: `${reorderDialogHeightPct}%`,
+              borderRadius: 28,
+              overflow: 'hidden',
+              backgroundColor: '#171717',
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+            }}
+          >
+            <LinearGradient
+              colors={['#171717', '#4B5563']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ position: 'absolute', width: '100%', height: '100%' }}
+            />
+            <LinearGradient
+              colors={['rgba(16,185,129,0.28)', 'transparent']}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 140 }}
+            />
+
+            <View className="w-full items-center pt-3 pb-1">
+              <View className="w-12 h-1.5 bg-white/25 rounded-full" />
+            </View>
+            <View className="px-6 pb-2 flex-row items-center justify-between">
+              <Text className="text-white font-black text-sm uppercase tracking-widest">
+                Riordina esercizi
+              </Text>
+              <TouchableOpacity
+                onPress={handleCloseReorder}
+                className="px-4 py-2 rounded-full bg-[#10B981]"
+              >
+                <Text className="text-black font-black text-xs uppercase tracking-widest">
+                  Fine
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text className="px-6 text-gray-300 text-xs mb-3">
+              Tieni premuto e trascina per cambiare ordine.
+            </Text>
+
+            <DraggableFlatList
+              data={exercises}
+              keyExtractor={(item) => item.localId}
+              activationDistance={0}
+              autoscrollSpeed={300}
+              autoscrollThreshold={60}
+              onDragEnd={({ data }) => {
+                reorderExercises([...(data as DraftExercise[])]);
+              }}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 26 }}
+              renderItem={({ item, drag, isActive, getIndex }) => {
+                const rowIndex =
+                  getIndex?.() ?? exercises.findIndex((e) => e.localId === item.localId);
+
+                return (
+                  <ScaleDecorator>
+                    <TouchableOpacity
+                      onLongPress={drag}
+                      delayLongPress={120}
+                      activeOpacity={0.9}
+                      className={`rounded-2xl border px-4 py-4 mb-2 ${isActive ? 'bg-[#10B981]/18 border-[#10B981]/45' : 'bg-black/35 border-white/12'}`}
+                    >
+                      <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                        Esercizio {(rowIndex + 1).toString()}
+                      </Text>
+                      <Text className="text-white font-black text-base" numberOfLines={1}>
+                        {item.exercise.name}
+                      </Text>
+                    </TouchableOpacity>
+                  </ScaleDecorator>
+                );
+              }}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      <ExerciseLibrary
+        visible={isExerciseLibraryOpen}
+        onClose={() => setIsExerciseLibraryOpen(false)}
+        onExerciseAdd={handleAddExercise}
+        selectionMode="add"
+      />
+
+      <SetTypeSelectorModal
+        visible={isSetTypeModalOpen}
+        onClose={() => {
+          setIsSetTypeModalOpen(false);
+          setSelectedSetRef(null);
+        }}
+        onSelect={(value) => handleSelectSetType(value)}
+        isPremium={false}
+      />
     </View>
   );
 }

@@ -23,6 +23,7 @@ interface Props {
   visible?: boolean;
   onClose?: () => void;
   onExerciseAdd?: (exercise: Exercise) => void;
+  selectionMode?: 'view' | 'add';
 }
 
 const DIFFICULTIES: Array<'novice' | 'intermediate' | 'advanced'> = [
@@ -32,27 +33,68 @@ const DIFFICULTIES: Array<'novice' | 'intermediate' | 'advanced'> = [
 ];
 const DIFFICULTY_WEIGHT: Record<string, number> = { novice: 1, intermediate: 2, advanced: 3 };
 
-const MUSCLE_LABELS: Record<string, string> = {
-  Chest: 'Petto',
-  Lats: 'Dorsali',
-  'Lower Back': 'Lombari',
-  Quads: 'Quadricipiti',
-  Shoulders: 'Spalle',
-  Biceps: 'Bicipiti',
-  Triceps: 'Tricipiti',
-  Abs: 'Addome',
+const MUSCLE_LABELS_BY_LANG: Record<string, Record<string, string>> = {
+  it: {
+    abdominals: 'Addominali',
+    abs: 'Addome',
+    abductors: 'Abduttori',
+    adductors: 'Adduttori',
+    biceps: 'Bicipiti',
+    calves: 'Polpacci',
+    chest: 'Petto',
+    forearms: 'Avambracci',
+    glutes: 'Glutei',
+    hamstrings: 'Femorali',
+    lats: 'Dorsali',
+    'lower back': 'Lombari',
+    'middle back': 'Schiena media',
+    neck: 'Collo',
+    quadriceps: 'Quadricipiti',
+    quads: 'Quadricipiti',
+    shoulders: 'Spalle',
+    traps: 'Trapezi',
+    triceps: 'Tricipiti',
+  },
+  es: {
+    abdominals: 'Abdominales',
+    abs: 'Abdomen',
+    abductors: 'Abductores',
+    adductors: 'Aductores',
+    biceps: 'Biceps',
+    calves: 'Pantorrillas',
+    chest: 'Pecho',
+    forearms: 'Antebrazos',
+    glutes: 'Gluteos',
+    hamstrings: 'Isquiotibiales',
+    lats: 'Dorsales',
+    'lower back': 'Lumbares',
+    'middle back': 'Espalda media',
+    neck: 'Cuello',
+    quadriceps: 'Cuadriceps',
+    quads: 'Cuadriceps',
+    shoulders: 'Hombros',
+    traps: 'Trapecios',
+    triceps: 'Triceps',
+  },
 };
 
-const getLocalizedMuscle = (muscle?: string | null) => {
+const getLocalizedMuscle = (muscle?: string | null, locale?: string) => {
   if (!muscle) return 'N/A';
-  return MUSCLE_LABELS[muscle] || muscle;
+  const key = muscle.toLowerCase().trim();
+  const lang = locale?.startsWith('es') ? 'es' : locale?.startsWith('it') ? 'it' : 'en';
+  return MUSCLE_LABELS_BY_LANG[lang]?.[key] || muscle;
 };
 
 const getFallbackImageUrl = (exerciseName: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(exerciseName)}&background=E5E7EB&color=111827&size=128&rounded=true`;
 
-export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd }: Props) {
-  const { t } = useTranslation();
+export default function ExerciseLibrary({
+  visible = true,
+  onClose,
+  onExerciseAdd,
+  selectionMode = 'view',
+}: Props) {
+  const { t, i18n } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -205,7 +247,7 @@ export default function ExerciseLibrary({ visible = true, onClose, onExerciseAdd
                       <Text
                         className={`font-bold ${selectedMuscle === muscle ? 'text-white' : 'text-gray-600'}`}
                       >
-                        {getLocalizedMuscle(muscle)}
+                        {getLocalizedMuscle(muscle, i18n.language)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -360,7 +402,7 @@ const ExerciseListItem = React.memo(
     onSelect: (item: Exercise) => void;
     onAdd?: (item: Exercise) => void;
   }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [hasFailedImage, setHasFailedImage] = useState(false);
 
     return (
@@ -386,7 +428,8 @@ const ExerciseListItem = React.memo(
         <View className="flex-1">
           <Text className="text-black font-bold text-lg">{item.name}</Text>
           <Text className="text-gray-500 font-medium text-xs uppercase mt-1">
-            {getLocalizedMuscle(item.target_muscle)} • {t('exercises.difficulty_label')}:{' '}
+            {getLocalizedMuscle(item.target_muscle, i18n.language)} •{' '}
+            {t('exercises.difficulty_label')}:{' '}
             {item.difficulty ? t(`difficulty.${item.difficulty}`) : 'N/A'}
           </Text>
         </View>

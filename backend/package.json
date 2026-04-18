@@ -8,6 +8,9 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
+    "seed:free": "tsx src/scripts/seedFreeExerciseDb.ts",
+    "migrate:exercise-translations": "tsx src/scripts/addExerciseTranslationColumns.ts",
+    "translate:exercise-text": "tsx src/scripts/translateExerciseDescriptions.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "lint:staged": "eslint --fix",
@@ -23,7 +26,8 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "postgres": "^3.4.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",

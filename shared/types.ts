@@ -165,3 +165,91 @@ export interface WorkoutSet {
   set_order: number;
   created_at?: string;
 }
+
+// =====================
+// POSE COACH MODEL
+// =====================
+
+export type PoseCoachMode = 'intro' | 'calibration' | 'tracking' | 'summary' | 'error';
+
+// Gym-focused keypoints only: no face landmarks, no finger landmarks, no foot landmarks.
+export type PoseJointName =
+  | 'left_shoulder'
+  | 'right_shoulder'
+  | 'left_elbow'
+  | 'right_elbow'
+  | 'left_wrist'
+  | 'right_wrist'
+  | 'left_hip'
+  | 'right_hip'
+  | 'left_knee'
+  | 'right_knee';
+
+export type PoseErrorCode =
+  | 'back_rounding'
+  | 'back_overextension'
+  | 'insufficient_depth'
+  | 'knee_valgus'
+  | 'uneven_bar_path'
+  | 'elbow_flare'
+  | 'elbow_drift'
+  | 'wrist_collapse'
+  | 'hip_shift'
+  | 'tempo_too_fast';
+
+export type PoseExerciseCode =
+  | 'squat'
+  | 'bench_press'
+  | 'curl'
+  | 'deadlift'
+  | 'military_press'
+  | 'barbell_row'
+  | 'seated_row'
+  | 'running';
+
+export type PoseMovementPhase =
+  | 'setup'
+  | 'descent'
+  | 'bottom'
+  | 'ascent'
+  | 'lockout'
+  | 'eccentric'
+  | 'concentric';
+
+export interface PoseJointPoint {
+  name: PoseJointName;
+  x: number;
+  y: number;
+  z?: number;
+  confidence: number;
+}
+
+export interface PoseFrame {
+  timestampMs: number;
+  joints: PoseJointPoint[];
+  modelConfidence: number;
+}
+
+export interface PoseDetectedError {
+  code: PoseErrorCode;
+  severity: 'warning' | 'critical';
+  message: string;
+  phase: PoseMovementPhase;
+  timestampMs: number;
+}
+
+export interface PoseExerciseProfile {
+  code: PoseExerciseCode;
+  displayName: string;
+  requiredJoints: PoseJointName[];
+  primaryAngles: Array<'knee' | 'hip' | 'elbow' | 'shoulder' | 'trunk' | 'wrist'>;
+  phases: PoseMovementPhase[];
+}
+
+export interface PoseTrackingSummary {
+  exerciseCode: PoseExerciseCode;
+  repCount: number;
+  score: number;
+  errors: PoseDetectedError[];
+  recommendations: string[];
+}

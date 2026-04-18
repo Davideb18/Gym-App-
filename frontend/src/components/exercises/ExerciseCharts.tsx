@@ -17,9 +17,11 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
   // No data UI
   if (!historyData || historyData.length < 2) {
     return (
-      <View className="items-center justify-center py-6 mt-4 opacity-50">
-        <Text className="text-white font-bold mb-1">{t('exercises.insufficient_data')}</Text>
-        <Text className="text-gray-500 text-xs text-center max-w-[250px]">
+      <View className="items-center justify-center py-6 mt-4 bg-black/35 rounded-2xl border border-white/10 px-4">
+        <Text className="text-white font-black mb-1 text-center">
+          {t('exercises.insufficient_data')}
+        </Text>
+        <Text className="text-gray-200 text-xs text-center max-w-[280px] leading-5">
           {t('exercises.train_more_to_unlock')}
         </Text>
       </View>

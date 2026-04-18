@@ -132,6 +132,25 @@ export function useWorkoutCreation() {
   const removeExercise = (localExerciseId: string) =>
     setExercises((prev) => prev.filter((e) => e.localId !== localExerciseId));
 
+  const moveExercise = (localExerciseId: string, direction: 'up' | 'down') => {
+    setExercises((prev) => {
+      const currentIndex = prev.findIndex((e) => e.localId === localExerciseId);
+      if (currentIndex === -1) return prev;
+
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+
+      const next = [...prev];
+      const [moved] = next.splice(currentIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const reorderExercises = (nextExercises: DraftExercise[]) => {
+    setExercises(nextExercises);
+  };
+
   const addSet = (localExerciseId: string) =>
     setExercises((prev) =>
       prev.map((e) =>
@@ -202,6 +221,8 @@ export function useWorkoutCreation() {
     setDescription,
     addExercise,
     removeExercise,
+    moveExercise,
+    reorderExercises,
     addSet,
     removeSet,
     updateSetField,

@@ -50,6 +50,20 @@ alter table public.exercises add column if not exists difficulty text;
 
 do $$
 begin
+  -- 1) Normalizzazione dati esistenti per evitare errori di vincolo
+  update public.exercises
+  set difficulty = lower(trim(difficulty))
+  where difficulty is not null;
+
+  update public.exercises
+  set difficulty = 'novice'
+  where difficulty in ('beginner', 'principiante', 'easy');
+
+  update public.exercises
+  set difficulty = 'advanced'
+  where difficulty in ('expert', 'esperto', 'elite');
+
+  -- 2) Aggiunta del vincolo rimasto
   if not exists (
     select 1 from pg_constraint
     where conname = 'exercises_difficulty_chk'
