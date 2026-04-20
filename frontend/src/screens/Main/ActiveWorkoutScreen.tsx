@@ -26,6 +26,94 @@ import ActiveWorkoutHeader from '../../components/workout/active/ActiveWorkoutHe
 import ActiveWorkoutRestTimer from '../../components/workout/active/ActiveWorkoutRestTimer';
 import ActiveWorkoutExerciseCard from '../../components/workout/active/ActiveWorkoutExerciseCard';
 
+const estimateE1rm = (weight: number, reps: number) => {
+  if (!Number.isFinite(weight) || !Number.isFinite(reps) || weight <= 0 || reps <= 0) return 0;
+  return weight * (1 + reps / 30);
+};
+
+const deriveMuscleGroups = (exerciseNames: string[]) => {
+  const groups = [
+    {
+      name: 'Chest',
+      count: 0,
+      color: '#F59E0B',
+      keywords: ['chest', 'pector', 'bench', 'press', 'dip'],
+    },
+    {
+      name: 'Back',
+      count: 0,
+      color: '#3B82F6',
+      keywords: ['back', 'row', 'pull', 'lat', 'deadlift'],
+    },
+    {
+      name: 'Legs',
+      count: 0,
+      color: '#10B981',
+      keywords: ['squat', 'leg', 'lunge', 'deadlift', 'press'],
+    },
+    {
+      name: 'Shoulders',
+      count: 0,
+      color: '#8B5CF6',
+      keywords: ['shoulder', 'press', 'raise', 'deltoid', 'overhead'],
+    },
+    {
+      name: 'Arms',
+      count: 0,
+      color: '#EF4444',
+      keywords: ['curl', 'biceps', 'triceps', 'pushdown', 'skull'],
+    },
+    {
+      name: 'Core',
+      count: 0,
+      color: '#F97316',
+      keywords: ['core', 'plank', 'crunch', 'ab', 'sit'],
+    },
+  ];
+
+  exerciseNames.forEach((name) => {
+    const normalized = name.toLowerCase();
+    groups.forEach((group) => {
+      if (group.keywords.some((keyword) => normalized.includes(keyword))) {
+        group.count += 1;
+      }
+    });
+  });
+
+  return groups.filter((group) => group.count > 0).sort((a, b) => b.count - a.count);
+};
+
+const buildCoachTips = (payload: {
+  totalVolume: number;
+  completedSets: number;
+  timeString: string;
+  newPrs: number;
+  muscleGroups: number;
+}) => {
+  const tips: string[] = [];
+  const totalMinutes =
+    Number(payload.timeString.slice(0, 2)) * 60 + Number(payload.timeString.slice(3, 5));
+
+  if (payload.newPrs > 0) {
+    tips.push(
+      'Hai fatto nuovi record. Mantieni carichi e tecnica per 1-2 sessioni prima di forzare ancora.',
+    );
+  }
+  if (totalMinutes >= 75 && payload.completedSets < 10) {
+    tips.push('Sessione lunga con poche serie: valuta recuperi piu puliti o superserie mirate.');
+  }
+  if (payload.totalVolume >= 8000) {
+    tips.push('Buon volume di lavoro: questa e una sessione solida per accumulo di stimolo.');
+  } else if (payload.totalVolume > 0) {
+    tips.push('Volume contenuto ma utile: perfetto se stai cercando qualita e controllo.');
+  }
+  if (payload.muscleGroups >= 4) {
+    tips.push('Hai coperto molti gruppi: ottimo bilanciamento generale del workout.');
+  }
+
+  return tips.slice(0, 3);
+};
+
 export default function ActiveWorkoutScreen() {
   const {
     isActive,
@@ -84,61 +172,6 @@ export default function ActiveWorkoutScreen() {
     setBestE1rmByExercise(bestE1rmMap);
   }, [bestE1rmMap, isActive]);
 
-  const e1rm = (weight: number, reps: number) => {
-    if (!Number.isFinite(weight) || !Number.isFinite(reps) || weight <= 0 || reps <= 0) return 0;
-    return weight * (1 + reps / 30);
-  };
-
-  const deriveMuscleGroups = (exerciseNames: string[]) => {
-    const groups = [
-      { name: 'Chest', count: 0, color: '#F59E0B', keywords: ['chest', 'pector', 'bench', 'press', 'dip'] },
-      { name: 'Back', count: 0, color: '#3B82F6', keywords: ['back', 'row', 'pull', 'lat', 'deadlift'] },
-      { name: 'Legs', count: 0, color: '#10B981', keywords: ['squat', 'leg', 'lunge', 'deadlift', 'press'] },
-      { name: 'Shoulders', count: 0, color: '#8B5CF6', keywords: ['shoulder', 'press', 'raise', 'deltoid', 'overhead'] },
-      { name: 'Arms', count: 0, color: '#EF4444', keywords: ['curl', 'biceps', 'triceps', 'pushdown', 'skull'] },
-      { name: 'Core', count: 0, color: '#F97316', keywords: ['core', 'plank', 'crunch', 'ab', 'sit'] },
-    ];
-
-    exerciseNames.forEach((name) => {
-      const normalized = name.toLowerCase();
-      groups.forEach((group) => {
-        if (group.keywords.some((keyword) => normalized.includes(keyword))) {
-          group.count += 1;
-        }
-      });
-    });
-
-    return groups.filter((group) => group.count > 0).sort((a, b) => b.count - a.count);
-  };
-
-  const buildCoachTips = (payload: {
-    totalVolume: number;
-    completedSets: number;
-    timeString: string;
-    newPrs: number;
-    muscleGroups: number;
-  }) => {
-    const tips: string[] = [];
-    const totalMinutes = Number(payload.timeString.slice(0, 2)) * 60 + Number(payload.timeString.slice(3, 5));
-
-    if (payload.newPrs > 0) {
-      tips.push('Hai fatto nuovi record. Mantieni carichi e tecnica per 1-2 sessioni prima di forzare ancora.');
-    }
-    if (totalMinutes >= 75 && payload.completedSets < 10) {
-      tips.push('Sessione lunga con poche serie: valuta recuperi piu puliti o superserie mirate.');
-    }
-    if (payload.totalVolume >= 8000) {
-      tips.push('Buon volume di lavoro: questa e una sessione solida per accumulo di stimolo.');
-    } else if (payload.totalVolume > 0) {
-      tips.push('Volume contenuto ma utile: perfetto se stai cercando qualita e controllo.');
-    }
-    if (payload.muscleGroups >= 4) {
-      tips.push('Hai coperto molti gruppi: ottimo bilanciamento generale del workout.');
-    }
-
-    return tips.slice(0, 3);
-  };
-
   const timeString = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`;
   let totalVolume = 0,
     completedSets = 0,
@@ -191,7 +224,10 @@ export default function ActiveWorkoutScreen() {
               exercises: summaryExercises,
               exerciseVolumeBars: summaryExercises
                 .slice(0, 6)
-                .map((ex) => ({ label: ex.name.length > 9 ? `${ex.name.slice(0, 8)}…` : ex.name, value: Math.max(1, Math.round(ex.totalVolume / 100)) })),
+                .map((ex) => ({
+                  label: ex.name.length > 9 ? `${ex.name.slice(0, 8)}…` : ex.name,
+                  value: Math.max(1, Math.round(ex.totalVolume / 100)),
+                })),
               newPrs: saveResult.newPrs || [],
               muscleGroups: deriveMuscleGroups(summaryExercises.map((ex) => ex.name)),
               coachTips: buildCoachTips({
@@ -244,7 +280,7 @@ export default function ActiveWorkoutScreen() {
     const weight = Number(set.real_weight);
     if (!Number.isFinite(reps) || !Number.isFinite(weight) || reps <= 0 || weight <= 0) return;
 
-    const currentScore = e1rm(weight, reps);
+    const currentScore = estimateE1rm(weight, reps);
     const historicalBest = bestE1rmByExercise[exercise.exercise_id] || 0;
 
     if (currentScore > historicalBest + 0.2) {

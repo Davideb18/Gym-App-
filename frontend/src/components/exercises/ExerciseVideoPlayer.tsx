@@ -14,9 +14,14 @@ import { useTranslation } from 'react-i18next';
 interface ExerciseVideoPlayerProps {
   imageUrls?: string[] | null;
   imageUrl?: string | null;
+  fillParent?: boolean;
 }
 
-export default function ExerciseVideoPlayer({ imageUrls, imageUrl }: ExerciseVideoPlayerProps) {
+export default function ExerciseVideoPlayer({
+  imageUrls,
+  imageUrl,
+  fillParent = false,
+}: ExerciseVideoPlayerProps) {
   const AUTO_ADVANCE_INTERVAL_MS = 1000;
   const FADE_DURATION_MS = 900;
   const { t } = useTranslation();
@@ -25,6 +30,7 @@ export default function ExerciseVideoPlayer({ imageUrls, imageUrl }: ExerciseVid
   const [isPaused, setIsPaused] = useState(false);
   const [aspectRatio, setAspectRatio] = useState(4 / 3);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const singleImageScale = useRef(new Animated.Value(1)).current;
 
   const images = useMemo(() => {
     const cleanList = (imageUrls || []).filter((url): url is string => Boolean(url && url.trim()));
@@ -39,7 +45,7 @@ export default function ExerciseVideoPlayer({ imageUrls, imageUrl }: ExerciseVid
     setPreviousIndex(null);
     setIsPaused(false);
     fadeAnim.setValue(1);
-  }, [images.length]);
+  }, [images.length, fadeAnim]);
 
   useEffect(() => {
     if (images.length <= 1 || isPaused) {
@@ -87,6 +93,33 @@ export default function ExerciseVideoPlayer({ imageUrls, imageUrl }: ExerciseVid
     );
   }, [images, currentIndex]);
 
+  useEffect(() => {
+    if (images.length !== 1) {
+      singleImageScale.stopAnimation(() => singleImageScale.setValue(1));
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(singleImageScale, {
+          toValue: 1.05,
+          duration: 2600,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(singleImageScale, {
+          toValue: 1,
+          duration: 2600,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    loop.start();
+    return () => loop.stop();
+  }, [images.length, singleImageScale]);
+
   const togglePause = () => {
     if (images.length > 1) {
       setIsPaused((prev) => !prev);
@@ -96,7 +129,7 @@ export default function ExerciseVideoPlayer({ imageUrls, imageUrl }: ExerciseVid
   return (
     <View
       className="w-full bg-black rounded-[32px] overflow-hidden border border-white/5 shadow-lg relative justify-center items-center"
-      style={{ aspectRatio }}
+      style={fillParent ? { height: '100%' } : { aspectRatio }}
     >
       {images.length > 0 ? (
         <TouchableOpacity activeOpacity={0.95} className="w-full h-full" onPress={togglePause}>
@@ -110,7 +143,7 @@ export default function ExerciseVideoPlayer({ imageUrls, imageUrl }: ExerciseVid
 
           <Animated.Image
             source={{ uri: images[currentIndex] }}
-            style={{ opacity: fadeAnim }}
+            style={{ opacity: fadeAnim, transform: [{ scale: singleImageScale }] }}
             className="absolute inset-0 w-full h-full"
             resizeMode="contain"
           />

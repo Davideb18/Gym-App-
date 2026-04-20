@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Alert,
   ActivityIndicator,
   TouchableWithoutFeedback,
@@ -47,11 +46,9 @@ export default function ResetPasswordScreen({ onSuccess }: ResetPasswordScreenPr
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      Alert.alert(
-        'Success!',
-        'Your password has been updated successfully.',
-        [{ text: 'OK', onPress: onSuccess }]
-      );
+      Alert.alert('Success!', 'Your password has been updated successfully.', [
+        { text: 'OK', onPress: onSuccess },
+      ]);
     }
   };
 
@@ -59,11 +56,11 @@ export default function ResetPasswordScreen({ onSuccess }: ResetPasswordScreenPr
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View className="flex-1 bg-[#18181b]">
         <StatusBar style="light" />
-        
+
         {/* EXACT GRADIENT BACKGROUND FROM LOGIN */}
         <LinearGradient
           colors={['#18181b', '#52525b', '#e4e4e7', '#ffffff', '#d4d4d8']}
-          locations={[0, 0.15, 0.40, 0.85, 1]}
+          locations={[0, 0.15, 0.4, 0.85, 1]}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
 
@@ -71,20 +68,25 @@ export default function ResetPasswordScreen({ onSuccess }: ResetPasswordScreenPr
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1 pt-20 px-6 w-full"
         >
-          <ScrollView 
+          <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
           >
             {/* Header */}
-            <Animated.View 
+            <Animated.View
               entering={FadeInDown.delay(200).duration(1000).springify()}
               className="items-center mb-8 w-full"
             >
-              <Image 
-                source={require('../../../assets/the_lab_logo.png')} 
-                style={{ width: 220, height: 200, marginBottom: -40 }}
-                resizeMode="contain"
-              />
+              <View className="items-center justify-center mb-4">
+                <View className="flex-row items-center">
+                  <Text className="text-[34px] font-black text-[#111111] tracking-tight">
+                    SPOTTER
+                  </Text>
+                  <View className="ml-1 bg-[#10B981] px-2 py-1 rounded-md">
+                    <Text className="text-black text-[24px] font-black italic">AI</Text>
+                  </View>
+                </View>
+              </View>
               <Text className="text-[34px] font-bold text-[#111111] mt-0 mb-1 text-center tracking-tight">
                 New Password
               </Text>
@@ -94,7 +96,7 @@ export default function ResetPasswordScreen({ onSuccess }: ResetPasswordScreenPr
             </Animated.View>
 
             {/* Form */}
-            <Animated.View 
+            <Animated.View
               entering={FadeInUp.delay(400).duration(1000).springify()}
               className="w-full mt-2"
             >
@@ -139,7 +141,9 @@ export default function ResetPasswordScreen({ onSuccess }: ResetPasswordScreenPr
                   onPress={handleUpdatePassword}
                   disabled={loading}
                 >
-                  <View className={`bg-[#222] py-4 rounded-full items-center shadow-lg ${loading ? 'opacity-70' : ''}`}>
+                  <View
+                    className={`bg-[#222] py-4 rounded-full items-center shadow-lg ${loading ? 'opacity-70' : ''}`}
+                  >
                     {loading ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (

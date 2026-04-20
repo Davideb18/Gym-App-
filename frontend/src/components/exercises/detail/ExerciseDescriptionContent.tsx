@@ -3,6 +3,60 @@ import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import ExerciseVideoPlayer from '../ExerciseVideoPlayer';
 import ExerciseCharts from '../ExerciseCharts';
+import type { ExerciseHistorySession } from '../../../api/workoutService';
+
+const FORCE_LABELS: Record<string, Record<string, string>> = {
+  it: { push: 'Spinta', pull: 'Trazione', static: 'Statica' },
+  es: { push: 'Empuje', pull: 'Traccion', static: 'Estatica' },
+  en: { push: 'Push', pull: 'Pull', static: 'Static' },
+};
+
+const MECHANIC_LABELS: Record<string, Record<string, string>> = {
+  it: { compound: 'Multiarticolare', isolation: 'Isolamento' },
+  es: { compound: 'Multiarticular', isolation: 'Aislamiento' },
+  en: { compound: 'Compound', isolation: 'Isolation' },
+};
+
+const MUSCLE_LABELS: Record<string, Record<string, string>> = {
+  it: {
+    abdominals: 'Addominali',
+    abductors: 'Abduttori',
+    adductors: 'Adduttori',
+    biceps: 'Bicipiti',
+    calves: 'Polpacci',
+    chest: 'Petto',
+    forearms: 'Avambracci',
+    glutes: 'Glutei',
+    hamstrings: 'Femorali',
+    lats: 'Dorsali',
+    'lower back': 'Lombari',
+    'middle back': 'Schiena media',
+    neck: 'Collo',
+    quadriceps: 'Quadricipiti',
+    shoulders: 'Spalle',
+    traps: 'Trapezi',
+    triceps: 'Tricipiti',
+  },
+  es: {
+    abdominals: 'Abdominales',
+    abductors: 'Abductores',
+    adductors: 'Aductores',
+    biceps: 'Biceps',
+    calves: 'Pantorrillas',
+    chest: 'Pecho',
+    forearms: 'Antebrazos',
+    glutes: 'Gluteos',
+    hamstrings: 'Isquiotibiales',
+    lats: 'Dorsales',
+    'lower back': 'Lumbares',
+    'middle back': 'Espalda media',
+    neck: 'Cuello',
+    quadriceps: 'Cuadriceps',
+    shoulders: 'Hombros',
+    traps: 'Trapecios',
+    triceps: 'Triceps',
+  },
+};
 
 type ExerciseDescriptionContentProps = {
   imageUrls?: string[] | null;
@@ -10,7 +64,7 @@ type ExerciseDescriptionContentProps = {
   instructions: string;
   noInstructionsLabel: string;
   instructionsTitle: string;
-  historyData: any[];
+  historyData: ExerciseHistorySession[];
   secondaryMuscles?: string | null;
   difficulty?: string | null;
   force?: string | null;
@@ -31,71 +85,18 @@ export default function ExerciseDescriptionContent({
 }: ExerciseDescriptionContentProps) {
   const { i18n, t } = useTranslation();
 
-  const forceLabels: Record<string, Record<string, string>> = {
-    it: { push: 'Spinta', pull: 'Trazione', static: 'Statica' },
-    es: { push: 'Empuje', pull: 'Traccion', static: 'Estatica' },
-    en: { push: 'Push', pull: 'Pull', static: 'Static' },
-  };
-
-  const mechanicLabels: Record<string, Record<string, string>> = {
-    it: { compound: 'Multiarticolare', isolation: 'Isolamento' },
-    es: { compound: 'Multiarticular', isolation: 'Aislamiento' },
-    en: { compound: 'Compound', isolation: 'Isolation' },
-  };
-
-  const muscleLabels: Record<string, Record<string, string>> = {
-    it: {
-      abdominals: 'Addominali',
-      abductors: 'Abduttori',
-      adductors: 'Adduttori',
-      biceps: 'Bicipiti',
-      calves: 'Polpacci',
-      chest: 'Petto',
-      forearms: 'Avambracci',
-      glutes: 'Glutei',
-      hamstrings: 'Femorali',
-      lats: 'Dorsali',
-      'lower back': 'Lombari',
-      'middle back': 'Schiena media',
-      neck: 'Collo',
-      quadriceps: 'Quadricipiti',
-      shoulders: 'Spalle',
-      traps: 'Trapezi',
-      triceps: 'Tricipiti',
-    },
-    es: {
-      abdominals: 'Abdominales',
-      abductors: 'Abductores',
-      adductors: 'Aductores',
-      biceps: 'Biceps',
-      calves: 'Pantorrillas',
-      chest: 'Pecho',
-      forearms: 'Antebrazos',
-      glutes: 'Gluteos',
-      hamstrings: 'Isquiotibiales',
-      lats: 'Dorsales',
-      'lower back': 'Lumbares',
-      'middle back': 'Espalda media',
-      neck: 'Cuello',
-      quadriceps: 'Cuadriceps',
-      shoulders: 'Hombros',
-      traps: 'Trapecios',
-      triceps: 'Triceps',
-    },
-  };
-
   const lang = i18n.language.startsWith('es') ? 'es' : i18n.language.startsWith('it') ? 'it' : 'en';
 
   const translatedForce = useMemo(() => {
     if (!force) return null;
     const key = force.toLowerCase();
-    return forceLabels[lang]?.[key] || force;
+    return FORCE_LABELS[lang]?.[key] || force;
   }, [force, lang]);
 
   const translatedMechanic = useMemo(() => {
     if (!mechanic) return null;
     const key = mechanic.toLowerCase();
-    return mechanicLabels[lang]?.[key] || mechanic;
+    return MECHANIC_LABELS[lang]?.[key] || mechanic;
   }, [mechanic, lang]);
 
   const translatedSecondaryMuscles = useMemo(() => {
@@ -106,7 +107,7 @@ export default function ExerciseDescriptionContent({
       .filter(Boolean)
       .map((m) => {
         const key = m.toLowerCase();
-        return muscleLabels[lang]?.[key] || m;
+        return MUSCLE_LABELS[lang]?.[key] || m;
       });
   }, [secondaryMuscles, lang]);
 

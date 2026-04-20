@@ -2,7 +2,7 @@
   "expo": {
     "name": "frontend",
     "slug": "frontend",
-    "scheme": "thelabfit",
+    "scheme": "spotterai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,6 +15,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.davideb-sw.frontend"
+    },
+    "autolinking": {
+      "ios": {
+        "exclude": ["expo-gl", "expo-gl-cpp"]
+      }
     },
     "android": {
       "adaptiveIcon": {

@@ -5,6 +5,7 @@ import {
   SetType,
   WorkoutTemplateExercise,
   WorkoutTemplateSet,
+  Exercise,
 } from '../../../shared/types';
 import 'react-native-get-random-values'; // Serve per generare ID unici (uuid) in React Native
 import { v4 as uuidv4 } from 'uuid';
@@ -98,9 +99,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
           id: uuidv4(),
           template_exercise_id: te.id,
           exercise_id: te.exercise_id,
-          // !! Attenzione: qui assumiamo che il join restituisca 'exercises' come singola entità o array
-          // A seconda di come l'hai gestito in Supabase, assicurati di prendere il name.
-          exercise_name: (te.exercises as any)?.name || 'Esercizio Sconosciuto',
+          exercise_name: (te.exercises as Exercise | null)?.name || 'Esercizio Sconosciuto',
           sets: liveSets,
         };
       },

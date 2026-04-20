@@ -9,6 +9,89 @@ import {
 import { DraftExercise } from '../hooks/useWorkoutCreation';
 import { parsePositiveFloat, parsePositiveInt } from '../utils/numberUtils';
 
+type WorkoutSetRow = {
+  exercise_id: string;
+  set_number: number;
+  reps?: number | null;
+  weight?: number | null;
+};
+
+type CompletedWorkoutSet = {
+  is_completed: boolean;
+  real_reps?: number | string | null;
+  real_weight?: number | string | null;
+  template_set_id?: string | null;
+  set_number: number;
+  set_type: WorkoutTemplateSet['set_type'];
+};
+
+type CompletedWorkoutExercise = {
+  exercise_id: string;
+  exercise_name: string;
+  sets: CompletedWorkoutSet[];
+};
+
+type BestE1RMRow = {
+  exercise_id: string;
+  reps?: number | null;
+  weight?: number | null;
+};
+
+type HistoryBestRow = {
+  exercise_id: string;
+  reps?: number | null;
+  weight?: number | null;
+};
+
+export type ExerciseHistorySet = {
+  id: string;
+  set_number: number;
+  weight?: number | null;
+  reps?: number | null;
+};
+
+export type ExerciseHistorySession = {
+  session_id: string;
+  completed_at: string;
+  notes: string;
+  sets: ExerciseHistorySet[];
+};
+
+type ExerciseHistoryRow = {
+  id: string;
+  session_id: string;
+  set_number: number;
+  reps?: number | null;
+  weight?: number | null;
+  performed_at: string;
+  workout_sessions?: {
+    completed_at?: string | null;
+    notes?: string | null;
+  } | null;
+};
+
+export type RecentPerformedSet = {
+  id: string;
+  set_number?: number | null;
+  set_type?: string | null;
+  reps?: number | null;
+  weight?: number | null;
+  exercises?: {
+    name?: string | null;
+  } | null;
+};
+
+export type RecentWorkoutSession = {
+  id: string;
+  completed_at?: string | null;
+  duration_seconds?: number | null;
+  total_volume?: number | null;
+  workout_templates?: {
+    name?: string | null;
+  } | null;
+  performed_sets?: RecentPerformedSet[] | null;
+};
+
 export const WorkoutService = {
   getLastPerformanceByExercises: async (profileId: string, exerciseIds: string[]) => {
     if (!exerciseIds.length)
@@ -29,7 +112,7 @@ export const WorkoutService = {
 
     const result: Record<string, Record<number, { reps?: number; weight?: number }>> = {};
 
-    (data || []).forEach((row: any) => {
+    ((data || []) as WorkoutSetRow[]).forEach((row) => {
       const exId = row.exercise_id;
       const setNumber = Number(row.set_number) || 0;
       if (!exId || !setNumber) return;
@@ -64,7 +147,7 @@ export const WorkoutService = {
 
     const result: Record<string, number> = {};
 
-    (data || []).forEach((row: any) => {
+    ((data || []) as BestE1RMRow[]).forEach((row) => {
       const exerciseId = row.exercise_id;
       const reps = Number(row.reps);
       const weight = Number(row.weight);
@@ -85,14 +168,9 @@ export const WorkoutService = {
     return result;
   },
 
-  // -- OTTENERE LE SCHEDE --
   getTemplates: async (profileId: string): Promise<WorkoutTemplate[]> => {
     const { data, error } = await supabase
       .from('workout_templates')
-      // Con questa chiamata stiamo dicendo: "Voglio tutte le schede di questo utente (profileId),
-      // e per ogni scheda voglio anche gli esercizi collegati (workout_template_exercises)
-      // e per ogni esercizio voglio anche le serie collegate (workout_template_sets)
-      // e i dettagli dell'esercizio (exercises)".
       .select('*, workout_template_exercises(*, workout_template_sets(*), exercises(*))')
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false });
@@ -101,14 +179,12 @@ export const WorkoutService = {
     return data as unknown as WorkoutTemplate[];
   },
 
-  // -- CREARE UNA SCHEDA CON LIMITI FREE (MAX 4) --
   createTemplate: async (
     profileId: string,
     name: string,
     description?: string,
     isPremium: boolean = false,
   ) => {
-    // LOGICA DI BUSINESS: se è free, contiamo quante schede ha già creato
     if (!isPremium) {
       const { count, error: countError } = await supabase
         .from('workout_templates')
@@ -133,22 +209,13 @@ export const WorkoutService = {
     return data as WorkoutTemplate;
   },
 
-  // -- AGGIUNGERE UN ESERCIZIO CON DROPSET / CLUSTER (Salvato nel JSON) --
   addExerciseToTemplate: async (
     templateId: string,
     exerciseId: string,
     order: number,
-    // La dicitura "Omit" vuol dire:
-    // "Usa il tipo WorkoutTemplateSet, ma tralascia (nascondi) i campi 'id', 'created_at' etc,
-    // perché questi li creerà Supabase da solo dopo."
     sets: Omit<WorkoutTemplateSet, 'id' | 'template_exercise_id' | 'created_at' | 'updated_at'>[],
     notes?: string,
   ) => {
-    // Qui diciamo: Supabase, inseriscimi l'esercizio.
-    // Siccome in basso faremo ANCHE la chiamata per salvare i Set del figlio, ho
-    // rinominato la variabile `data` in `exerciseData`, per non confonderla con il
-    // `data` che useremo dopo per i set! Lo stesso vale per `error` che per me
-    // diventa `exerciseError`.
     const { data: exerciseData, error: exerciseError } = await supabase
       .from('workout_template_exercises')
       .insert([
@@ -161,21 +228,13 @@ export const WorkoutService = {
       ])
       .select()
       .single();
-    // single() ci assicura che restituisce UN oggetto (exerciseData), non un array [exerciseData].
-
-    // Se il cassetto ha un errore, butto via la scatola e fermo tutto il programma.
     if (exerciseError) throw exerciseError;
     if (!exerciseData) throw new Error("Errore strano: non ho ricevuto l'esercizio");
 
-    // Controllo se dalla UI l'utente mi ha passato almeno 1 serie (o se ha lasciato vuoto).
     if (sets && sets.length > 0) {
-      // Qui prendo l'array che mi ha passato l'utente. Faccio una "fotocopia" di ogni singolo
-      // serie iterando (`.map`). Copio tutti i valori scelti (peso, reps: `...set`) e AGGIUNGO
-      // forzatamente l'ID di collegamento per il db (template_exercise_id)
       const setsToInsert = sets.map((set, index) => ({
         ...set,
         template_exercise_id: exerciseData.id,
-        // Mi assicuro anche di forzare l'ordine in cui si trovano, per sicurezza
         set_number: index + 1,
       }));
 
@@ -187,7 +246,6 @@ export const WorkoutService = {
     return exerciseData as WorkoutTemplateExercise;
   },
 
-  // -- SALVARE UN WORKOUT TEMPLATE COMPLETO (ALL-IN-ONE) --
   saveCompleteWorkoutTemplate: async (
     profileId: string,
     name: string,
@@ -195,15 +253,12 @@ export const WorkoutService = {
     exercises: DraftExercise[],
     isPremium: boolean = false,
   ) => {
-    // 1. Crea il Template Base
     const template = await WorkoutService.createTemplate(profileId, name, description, isPremium);
 
     try {
-      // 2. Per ogni esercizio nel draft, salvalo con i suoi set
       for (let i = 0; i < exercises.length; i++) {
         const draftEx = exercises[i];
 
-        // Mappiamo i DraftSet verso il formato atteso dal DB
         const setsToInsert = draftEx.sets.map((draftSet, index) => {
           const intensity_payload: Record<string, unknown> = {};
           if (draftSet.clusterMiniSets)
@@ -260,14 +315,12 @@ export const WorkoutService = {
     return template;
   },
 
-  // -- AGGIORNARE UN WORKOUT TEMPLATE COMPLETO --
   updateCompleteWorkoutTemplate: async (
     templateId: string,
     name: string,
     description: string | undefined,
     exercises: DraftExercise[],
   ) => {
-    // 1. Aggiorna la testata
     const { error: updateError } = await supabase
       .from('workout_templates')
       .update({ name, description })
@@ -275,7 +328,6 @@ export const WorkoutService = {
 
     if (updateError) throw updateError;
 
-    // 2. Elimina tutti i vecchi esercizi (le foreign key dovrebbero avere ON DELETE CASCADE per eliminare i set figli)
     const { error: deleteError } = await supabase
       .from('workout_template_exercises')
       .delete()
@@ -283,7 +335,6 @@ export const WorkoutService = {
 
     if (deleteError) throw deleteError;
 
-    // 3. Reinserisce la nuova struttura
     for (let i = 0; i < exercises.length; i++) {
       const draftEx = exercises[i];
 
@@ -332,7 +383,6 @@ export const WorkoutService = {
     }
   },
 
-  // -- ELIMINARE UN WORKOUT TEMPLATE --
   deleteTemplate: async (templateId: string, profileId: string) => {
     const { error } = await supabase
       .from('workout_templates')
@@ -343,7 +393,6 @@ export const WorkoutService = {
     if (error) throw error;
   },
 
-  // -- INIZIARE UNA SESSIONE (clonando la scheda in una sessione attiva) --
   startSession: async (profileId: string, TemplateId?: string) => {
     const { data, error } = await supabase
       .from('workout_sessions')
@@ -360,7 +409,6 @@ export const WorkoutService = {
     return data as WorkoutSession;
   },
 
-  // -- LOGGARE UNA SERIE E COLLEGARLA ALL'ESERCIZIO E ALLA SCHEDA --
   logPerformedSet: async (
     sessionId: string,
     exerciseId: string,
@@ -385,7 +433,6 @@ export const WorkoutService = {
     return data as PerformedSet;
   },
 
-  // -- FINIRE LA SESSIONE (calcolando durata, volume totale, etc) --
   finishSession: async (
     sessionId: string,
     durationSeconds: number,
@@ -401,7 +448,7 @@ export const WorkoutService = {
         total_volume: totalVolume,
         notes: notes,
       })
-      .eq('id', sessionId) // Assicuriamoci di aggiornare la sessione giusta
+      .eq('id', sessionId)
       .select()
       .single();
 
@@ -409,13 +456,12 @@ export const WorkoutService = {
     return data as WorkoutSession;
   },
 
-  // -- SALVARE UN'INTERA SESSIONE LIVE COMPLETATA --
   saveCompletedSession: async (
     profileId: string,
     templateId: string | undefined,
     startTime: number,
     totalVolume: number,
-    exercises: any[],
+    exercises: CompletedWorkoutExercise[],
   ) => {
     const e1rm = (weight: number, reps: number) => {
       if (!Number.isFinite(weight) || !Number.isFinite(reps) || weight <= 0 || reps <= 0) return 0;
@@ -427,7 +473,7 @@ export const WorkoutService = {
       { exerciseName: string; weight: number; reps: number; e1rm: number }
     >();
     exercises.forEach((ex) => {
-      ex.sets.forEach((set: any) => {
+      ex.sets.forEach((set) => {
         if (!set.is_completed) return;
         const reps = Number(set.real_reps);
         const weight = Number(set.real_weight);
@@ -446,7 +492,7 @@ export const WorkoutService = {
     });
 
     const exerciseIds = Array.from(currentBestByExercise.keys());
-    let historicalRows: any[] = [];
+    let historicalRows: HistoryBestRow[] = [];
     if (exerciseIds.length) {
       const { data: historyData, error: historyError } = await supabase
         .from('performed_sets')
@@ -457,11 +503,11 @@ export const WorkoutService = {
         .eq('is_completed', true);
 
       if (historyError) throw historyError;
-      historicalRows = historyData || [];
+      historicalRows = (historyData || []) as HistoryBestRow[];
     }
 
     const historicalBestByExercise = new Map<string, number>();
-    historicalRows.forEach((row: any) => {
+    historicalRows.forEach((row) => {
       const exId = row.exercise_id;
       const reps = Number(row.reps);
       const weight = Number(row.weight);
@@ -471,7 +517,6 @@ export const WorkoutService = {
       if (score > prev) historicalBestByExercise.set(exId, score);
     });
 
-    // 1. Create the session
     const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
     const { data: sessionData, error: sessionError } = await supabase
       .from('workout_sessions')
@@ -492,12 +537,10 @@ export const WorkoutService = {
     if (sessionError) throw sessionError;
     if (!sessionData) throw new Error('Errore durante la creazione della sessione');
 
-    // 2. Prepare the performed_sets payload
-    const setsToInsert: any[] = [];
+    const setsToInsert: Array<Omit<PerformedSet, 'id' | 'created_at'>> = [];
 
     exercises.forEach((ex) => {
-      ex.sets.forEach((set: any) => {
-        // Salviamo solo le serie segnate come completate
+      ex.sets.forEach((set) => {
         if (set.is_completed) {
           const safeReps = Number(set.real_reps);
           const safeWeight = Number(set.real_weight);
@@ -521,7 +564,6 @@ export const WorkoutService = {
       const { error: setsError } = await supabase.from('performed_sets').insert(setsToInsert);
 
       if (setsError) {
-        // Rollback
         await supabase.from('workout_sessions').delete().eq('id', sessionData.id);
         throw setsError;
       }
@@ -544,9 +586,7 @@ export const WorkoutService = {
     };
   },
 
-  // -- OTTENERE LO STORICO DI UN ESERCIZIO IN LINEA --
   getExerciseHistory: async (exerciseId: string) => {
-    // Cerchiamo i set completati per questo esercizio
     const { data, error } = await supabase
       .from('performed_sets')
       .select('*, workout_sessions(completed_at, notes)')
@@ -559,39 +599,37 @@ export const WorkoutService = {
 
     if (!data || data.length === 0) return [];
 
-    // Raggruppa per session_id
-    const grouped = data.reduce((acc: Record<string, any>, curr: any) => {
-      const sid = curr.session_id;
-      if (!acc[sid]) {
-        acc[sid] = {
-          session_id: sid,
-          completed_at: curr.workout_sessions?.completed_at || curr.performed_at,
-          notes: curr.workout_sessions?.notes || '',
-          sets: [],
-        };
-      }
-      // Li ordiniamo temporalmente
-      acc[sid].sets.push(curr);
-      return acc;
-    }, {});
+    const grouped = (data as ExerciseHistoryRow[]).reduce(
+      (acc: Record<string, ExerciseHistorySession>, curr) => {
+        const sid = curr.session_id;
+        if (!acc[sid]) {
+          acc[sid] = {
+            session_id: sid,
+            completed_at: curr.workout_sessions?.completed_at || curr.performed_at,
+            notes: curr.workout_sessions?.notes || '',
+            sets: [],
+          };
+        }
+        acc[sid].sets.push(curr);
+        return acc;
+      },
+      {},
+    );
 
-    // Per ogni sessione riordiniamo i set in base al set_number
-    Object.values(grouped).forEach((session: any) => {
-      session.sets.sort((a: any, b: any) => a.set_number - b.set_number);
+    Object.values(grouped).forEach((session) => {
+      session.sets.sort((a, b) => a.set_number - b.set_number);
     });
 
     return Object.values(grouped).sort(
-      (a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime(),
+      (a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime(),
     );
   },
 
-  // -- UPDATE NOTE DELLA SESSIONE --
   updateSessionNotes: async (sessionId: string, notes: string) => {
     const { error } = await supabase.from('workout_sessions').update({ notes }).eq('id', sessionId);
     if (error) throw error;
   },
 
-  // -- PRENDERE I DATI BASE DELL'ESERCIZIO --
   getExerciseBaseInfo: async (exerciseId: string) => {
     const { data, error } = await supabase
       .from('exercises')
@@ -603,7 +641,7 @@ export const WorkoutService = {
   },
 
   // -- OTTENERE LE SESSIONI COMPLETATE --
-  getRecentSessions: async (profileId: string) => {
+  getRecentSessions: async (profileId: string): Promise<RecentWorkoutSession[]> => {
     const { data, error } = await supabase
       .from('workout_sessions')
       .select('*, workout_templates(name), performed_sets(*, exercises(name))')
@@ -612,6 +650,6 @@ export const WorkoutService = {
       .order('completed_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+    return (data || []) as RecentWorkoutSession[];
   },
 };

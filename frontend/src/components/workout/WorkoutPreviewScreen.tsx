@@ -9,8 +9,202 @@ import { useActiveWorkout } from '../../store/useActiveWorkout';
 import { useExerciseModal } from '../../store/useExerciseModal';
 import { useWorkoutPreviewStore } from '../../store/useWorkoutPreviewStore';
 import { useCreateRoutineStore } from '../../store/useCreateRoutineStore';
-import { WorkoutTemplate, Exercise } from '../../../../shared/types';
+import {
+  WorkoutTemplate,
+  Exercise,
+  WorkoutTemplateExercise,
+  WorkoutTemplateSet,
+} from '../../../../shared/types';
 import { supabase } from '../../api/supabaseClient';
+
+type ExercisePreviewCardProps = {
+  te: WorkoutTemplateExercise;
+  idx: number;
+  openExercise: (exerciseId: string) => void;
+  t: (key: string) => string;
+};
+
+function ExercisePreviewCard({ te, idx, openExercise, t }: ExercisePreviewCardProps) {
+  const ex = te.exercises as unknown as Exercise;
+
+  return (
+    <View className="bg-black/25 rounded-[28px] p-4 mb-4 border border-white/10">
+      <View className="flex-row items-center mb-3">
+        <View className="bg-white/10 w-7 h-7 rounded-full items-center justify-center mr-3 border border-white/10">
+          <Text className="font-black text-white text-xs">{idx + 1}</Text>
+        </View>
+        {ex?.image_url ? (
+          <Image
+            source={{ uri: ex.image_url }}
+            style={{ width: 44, height: 44, borderRadius: 12, marginRight: 12 }}
+          />
+        ) : (
+          <View className="w-11 h-11 rounded-xl bg-white/5 items-center justify-center mr-3 border border-white/10">
+            <Dumbbell size={18} color="#666" />
+          </View>
+        )}
+        <View className="flex-1">
+          <TouchableOpacity onPress={() => ex?.id && openExercise(ex.id)}>
+            <Text className="font-black text-white text-base tracking-tight leading-tight">
+              {ex?.name || t('workouts.exercise')}
+            </Text>
+          </TouchableOpacity>
+          <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mt-0.5">
+            {ex?.target_muscle || t('exercises.target_muscle')}
+          </Text>
+        </View>
+      </View>
+      <View className="bg-black/30 rounded-xl p-3 border border-white/5">
+        <View className="flex-row pb-2 mb-1 border-b border-white/5">
+          <Text className="text-gray-500 font-black text-[9px] uppercase w-9 text-center">Set</Text>
+          <Text className="text-gray-500 font-black text-[9px] uppercase flex-1 text-center">
+            Tipo
+          </Text>
+          <Text className="text-gray-500 font-black text-[9px] uppercase w-14 text-center">
+            Reps
+          </Text>
+          <Text className="text-gray-500 font-black text-[9px] uppercase w-14 text-center">
+            Rest
+          </Text>
+        </View>
+        {te.workout_template_sets
+          ?.sort((a: WorkoutTemplateSet, b: WorkoutTemplateSet) => a.set_number - b.set_number)
+          .map((ts: WorkoutTemplateSet) => (
+            <View key={ts.id} className="flex-row items-center py-2 border-b border-white/[0.03]">
+              <Text className="text-white font-black text-xs w-9 text-center">{ts.set_number}</Text>
+              <View className="flex-1 items-center">
+                <View
+                  className={`px-2 py-1 rounded-md ${ts.set_type === 'normal' ? 'bg-white/10' : 'bg-yellow-500/20'}`}
+                >
+                  <Text
+                    className={`text-[8px] font-black uppercase tracking-widest ${ts.set_type === 'normal' ? 'text-gray-300' : 'text-yellow-400'}`}
+                  >
+                    {t(`difficulty.${ts.set_type}`)}
+                  </Text>
+                </View>
+              </View>
+              <Text className="text-white font-black text-xs w-14 text-center">
+                {ts.target_reps_max || '-'}
+              </Text>
+              <Text className="text-gray-400 font-bold text-xs w-14 text-center">
+                {ts.rest_seconds}s
+              </Text>
+            </View>
+          ))}
+      </View>
+    </View>
+  );
+}
+
+type PreviewActionBarProps = {
+  isActiveWorkout: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  handleEdit: () => void;
+  handleStart: () => void;
+  t: (key: string) => string;
+};
+
+function PreviewActionBar({
+  isActiveWorkout,
+  isLoading,
+  isError,
+  handleEdit,
+  handleStart,
+  t,
+}: PreviewActionBarProps) {
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 24,
+        paddingBottom: 36,
+        paddingTop: 10,
+        flexDirection: 'row',
+        gap: 12,
+        backgroundColor: 'transparent',
+      }}
+    >
+      <TouchableOpacity
+        onPress={handleEdit}
+        style={{
+          flex: 0.28,
+          height: 60,
+          backgroundColor: 'rgba(255,255,255,0.08)',
+          borderRadius: 24,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
+        }}
+        activeOpacity={0.7}
+      >
+        <Edit3 size={22} color="#FFF" />
+      </TouchableOpacity>
+      {isActiveWorkout ? (
+        <View
+          style={{
+            flex: 0.72,
+            height: 60,
+            backgroundColor: '#1F2937',
+            borderRadius: 24,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: '#374151',
+          }}
+        >
+          <Lock size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
+          <Text
+            style={{
+              color: '#9CA3AF',
+              fontWeight: '900',
+              fontSize: 14,
+              textTransform: 'uppercase',
+              letterSpacing: 2,
+            }}
+          >
+            {t('active_workout.in_progress')}
+          </Text>
+        </View>
+      ) : (
+        <TouchableOpacity
+          onPress={handleStart}
+          disabled={isLoading || isError}
+          style={{
+            flex: 0.72,
+            height: 60,
+            backgroundColor: isLoading || isError ? 'rgba(255,255,255,0.15)' : '#10B981',
+            borderRadius: 24,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          activeOpacity={0.85}
+        >
+          {!isLoading && !isError && (
+            <Play size={20} color="#000" fill="#000" style={{ marginRight: 10 }} />
+          )}
+          <Text
+            style={{
+              color: isLoading || isError ? '#FFF' : '#000',
+              fontWeight: '900',
+              fontSize: 15,
+              textTransform: 'uppercase',
+              letterSpacing: 1.5,
+            }}
+          >
+            {isLoading ? t('common.loading') : t('active_workout.start')}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
 
 export default function WorkoutPreviewScreen() {
   const { isOpen, templateId, closePreview } = useWorkoutPreviewStore();
@@ -182,178 +376,28 @@ export default function WorkoutPreviewScreen() {
               ? template.workout_template_exercises
                   .sort((a, b) => a.exercise_order - b.exercise_order)
                   .map((te, idx) => {
-                    const ex = te.exercises as unknown as Exercise;
                     return (
-                      <View
+                      <ExercisePreviewCard
                         key={te.id}
-                        className="bg-black/25 rounded-[28px] p-4 mb-4 border border-white/10"
-                      >
-                        <View className="flex-row items-center mb-3">
-                          <View className="bg-white/10 w-7 h-7 rounded-full items-center justify-center mr-3 border border-white/10">
-                            <Text className="font-black text-white text-xs">{idx + 1}</Text>
-                          </View>
-                          {ex?.image_url ? (
-                            <Image
-                              source={{ uri: ex.image_url }}
-                              style={{ width: 44, height: 44, borderRadius: 12, marginRight: 12 }}
-                            />
-                          ) : (
-                            <View className="w-11 h-11 rounded-xl bg-white/5 items-center justify-center mr-3 border border-white/10">
-                              <Dumbbell size={18} color="#666" />
-                            </View>
-                          )}
-                          <View className="flex-1">
-                            <TouchableOpacity onPress={() => ex?.id && openExercise(ex.id)}>
-                              <Text className="font-black text-white text-base tracking-tight leading-tight">
-                                {ex?.name || t('workouts.exercise')}
-                              </Text>
-                            </TouchableOpacity>
-                            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mt-0.5">
-                              {ex?.target_muscle || t('exercises.target_muscle')}
-                            </Text>
-                          </View>
-                        </View>
-                        <View className="bg-black/30 rounded-xl p-3 border border-white/5">
-                          <View className="flex-row pb-2 mb-1 border-b border-white/5">
-                            <Text className="text-gray-500 font-black text-[9px] uppercase w-9 text-center">
-                              Set
-                            </Text>
-                            <Text className="text-gray-500 font-black text-[9px] uppercase flex-1 text-center">
-                              Tipo
-                            </Text>
-                            <Text className="text-gray-500 font-black text-[9px] uppercase w-14 text-center">
-                              Reps
-                            </Text>
-                            <Text className="text-gray-500 font-black text-[9px] uppercase w-14 text-center">
-                              Rest
-                            </Text>
-                          </View>
-                          {te.workout_template_sets
-                            ?.sort((a, b) => a.set_number - b.set_number)
-                            .map((ts) => (
-                              <View
-                                key={ts.id}
-                                className="flex-row items-center py-2 border-b border-white/[0.03]"
-                              >
-                                <Text className="text-white font-black text-xs w-9 text-center">
-                                  {ts.set_number}
-                                </Text>
-                                <View className="flex-1 items-center">
-                                  <View
-                                    className={`px-2 py-1 rounded-md ${ts.set_type === 'normal' ? 'bg-white/10' : 'bg-yellow-500/20'}`}
-                                  >
-                                    <Text
-                                      className={`text-[8px] font-black uppercase tracking-widest ${ts.set_type === 'normal' ? 'text-gray-300' : 'text-yellow-400'}`}
-                                    >
-                                      {t(`difficulty.${ts.set_type}`)}
-                                    </Text>
-                                  </View>
-                                </View>
-                                <Text className="text-white font-black text-xs w-14 text-center">
-                                  {ts.target_reps_max || '-'}
-                                </Text>
-                                <Text className="text-gray-400 font-bold text-xs w-14 text-center">
-                                  {ts.rest_seconds}s
-                                </Text>
-                              </View>
-                            ))}
-                        </View>
-                      </View>
+                        te={te}
+                        idx={idx}
+                        openExercise={openExercise}
+                        t={t}
+                      />
                     );
                   })
               : null}
           </ScrollView>
 
           {/* Bottoni azione — parte del flusso, no BlurView separato */}
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              paddingHorizontal: 24,
-              paddingBottom: 36,
-              paddingTop: 10,
-              flexDirection: 'row',
-              gap: 12,
-              backgroundColor: 'transparent',
-            }}
-          >
-            <TouchableOpacity
-              onPress={handleEdit}
-              style={{
-                flex: 0.28,
-                height: 60,
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                borderRadius: 24,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.1)',
-              }}
-              activeOpacity={0.7}
-            >
-              <Edit3 size={22} color="#FFF" />
-            </TouchableOpacity>
-            {isActiveWorkout ? (
-              <View
-                style={{
-                  flex: 0.72,
-                  height: 60,
-                  backgroundColor: '#1F2937',
-                  borderRadius: 24,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 1,
-                  borderColor: '#374151',
-                }}
-              >
-                <Lock size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
-                <Text
-                  style={{
-                    color: '#9CA3AF',
-                    fontWeight: '900',
-                    fontSize: 14,
-                    textTransform: 'uppercase',
-                    letterSpacing: 2,
-                  }}
-                >
-                  {t('active_workout.in_progress')}
-                </Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                onPress={handleStart}
-                disabled={isLoading || isError}
-                style={{
-                  flex: 0.72,
-                  height: 60,
-                  backgroundColor: isLoading || isError ? 'rgba(255,255,255,0.15)' : '#10B981',
-                  borderRadius: 24,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                activeOpacity={0.85}
-              >
-                {!isLoading && !isError && (
-                  <Play size={20} color="#000" fill="#000" style={{ marginRight: 10 }} />
-                )}
-                <Text
-                  style={{
-                    color: isLoading || isError ? '#FFF' : '#000',
-                    fontWeight: '900',
-                    fontSize: 15,
-                    textTransform: 'uppercase',
-                    letterSpacing: 1.5,
-                  }}
-                >
-                  {isLoading ? t('common.loading') : t('active_workout.start')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <PreviewActionBar
+            isActiveWorkout={isActiveWorkout}
+            isLoading={isLoading}
+            isError={isError}
+            handleEdit={handleEdit}
+            handleStart={handleStart}
+            t={t}
+          />
         </View>
       </View>
     </View>

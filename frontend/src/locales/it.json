@@ -23,7 +23,7 @@
   "auth": {
     "login_title": "Bentornato",
     "login_subtitle": "Accedi per continuare",
-    "signup_title": "Unisciti a The Lab",
+    "signup_title": "Unisciti a SpotterAI",
     "signup_subtitle": "Crea il tuo account per iniziare",
     "full_name": "Nome Completo",
     "email": "Email",
@@ -43,7 +43,7 @@
     "signup_success_body": "Registrazione completata. Controlla la tua email per confermare l'account prima di accedere."
   },
   "home": {
-    "hub_title": "Workout Hub",
+    "hub_title": "Pagina principale",
     "motivation_title": "Motivazione Giornaliera",
     "motivation_quote": "\"LA FORZA NON DERIVA DAL VINCERE. LE TUE LOTTE SVILUPPANO I TUOI PUNTI DI FORZA.\"",
     "activity_overview": "Panoramica Attività",
@@ -71,7 +71,7 @@
     ]
   },
   "history": {
-    "chronology_title": "Chronology",
+    "chronology_title": "Cronologia",
     "future_title": "Futuro",
     "future_subtitle": "Continua ad allenarti!",
     "rest_day": "Giorno di Riposo",
@@ -83,9 +83,11 @@
     "view_details": "Vedi Dettagli"
   },
   "workouts": {
-    "templates_title": "Pagina Allenamenti",
-    "custom": "Workout",
+    "templates_title": "Schede Allenamento",
+    "custom": "Personalizzata",
     "ai_gen": "AI Gen",
+    "coach": "Coach",
+    "coach_default_exercise": "Squat a corpo libero",
     "exercise": "Esercizi",
     "my_routines": "Le Mie Routine",
     "add_new": "Nuova Routine",
@@ -95,7 +97,7 @@
     "delete_error": "Non è stato possibile eliminare la scheda."
   },
   "profile": {
-    "main_page_title": "Profile Main Page",
+    "main_page_title": "Pagina principale profilo",
     "settings": "Impostazioni",
     "language": "Lingua",
     "prs_set": "Record",
@@ -227,6 +229,52 @@
       "volume": "Volume",
       "reps": "Reps",
       "sets": "Serie"
+    }
+  },
+  "coach": {
+    "title": "Coach Tecnica",
+    "intro_description": "Ti mostro l'esecuzione e poi avviamo il tracking live con correzioni tecniche in tempo reale.",
+    "media_ready": "Media esercizio disponibile e pronto per la preview.",
+    "media_missing": "Nessun media disponibile: useremo solo guida testuale.",
+    "start_coach": "Avvia Coach",
+    "calibration": "Calibrazione",
+    "calibration_description": "Posizionati a circa 1.5m dalla camera. Quando sei pronto avviamo il tracking.",
+    "front": "Front",
+    "back": "Back",
+    "camera_permission_calibration": "Permetti l'accesso alla camera per iniziare la calibrazione.",
+    "keep_body_visible": "Mantieni spalle e anche sempre visibili nel frame.",
+    "start_tracking": "Inizia Tracking",
+    "repetitions": "Ripetizioni",
+    "live_hint_label": "Hint live",
+    "pose_stream_label": "Pose stream",
+    "metrics_label": "Metriche live",
+    "overlay_next_step": "Overlay keypoints e analisi tecnica verranno connessi nel prossimo step.",
+    "add_rep": "+1 Rep",
+    "finish_set": "Termina Set",
+    "summary_title": "Riepilogo Tecnica",
+    "detected_reps": "Reps rilevate",
+    "main_errors": "Errori principali",
+    "how_to_improve": "Come migliorare",
+    "new_set": "Nuovo Set",
+    "close": "Chiudi",
+    "hints": {
+      "keep_back_neutral": "Mantieni la schiena neutra",
+      "go_deeper": "Scendi ancora leggermente",
+      "stabilize_elbows": "Gomiti più fermi",
+      "control_up_phase": "Controlla la velocità in risalita",
+      "good_rep": "Buona rep, continua così",
+      "detector_not_ready": "Detector live non ancora attivo in questa build"
+    },
+    "mistakes": {
+      "inconsistent_depth": "Profondità incostante su 2 reps",
+      "too_fast_eccentric": "Troppo veloce in eccentrica",
+      "trunk_unstable": "Stabilità del tronco incostante",
+      "none_detected": "Nessun errore tecnico rilevante"
+    },
+    "tips": {
+      "pause_bottom": "Mantieni 1 secondo di pausa in basso",
+      "stable_torso": "Tieni il tronco stabile durante tutta la rep",
+      "breath_before_descent": "Respira prima della discesa"
     }
   },
   "summary": {

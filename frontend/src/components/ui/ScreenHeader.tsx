@@ -16,9 +16,9 @@ export default function ScreenHeader({
     <View className={`flex-row items-center justify-between ${className}`}>
       <View>
         <View className="flex-row items-center">
-          <Text className="text-white text-3xl font-[1000] tracking-tighter">THE</Text>
+          <Text className="text-white text-3xl font-[1000] tracking-tighter">SPOTTER</Text>
           <View className="ml-1 bg-[#10B981] px-1.5 py-0.5 rounded shadow-sm shadow-green-900/50">
-            <Text className="text-black text-xl font-black italic">LAB</Text>
+            <Text className="text-black text-xl font-black italic">AI</Text>
           </View>
         </View>
 

@@ -81,7 +81,7 @@ const mapTemplateToDraftExercises = (template: WorkoutTemplate): DraftExercise[]
 const validateDraft = (
   name: string,
   exercises: DraftExercise[],
-  t: (key: string, payload?: any) => string,
+  t: (key: string, payload?: Record<string, unknown>) => string,
 ) => {
   if (!name.trim()) return t('create_routine.error_name_required');
   if (exercises.length === 0) return t('create_routine.error_at_least_one_exercise');
@@ -192,7 +192,7 @@ export function useWorkoutCreation() {
     );
   };
 
-  const validate = () => validateDraft(name, exercises, t as any);
+  const validate = () => validateDraft(name, exercises, t);
 
   // verifica se ci sono set di tipo premium per mostrare un avviso agli utenti non premium
   const hasPremiumSetTypes = useMemo(

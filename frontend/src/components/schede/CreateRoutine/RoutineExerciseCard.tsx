@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Trash2, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { DraftExercise } from '../../../hooks/useWorkoutCreation';
+import type { DraftSet } from '../../../hooks/useWorkoutCreation';
+import type { Exercise } from '../../../../../shared/types';
 import RoutineSetRow from './RoutineSetRow';
 
 interface Props {
@@ -11,12 +13,12 @@ interface Props {
   compactMode?: boolean;
   isHighlightedDrag?: boolean;
   onActivateReorder: () => void;
-  onOpenExerciseInfo: (exercise: any) => void;
+  onOpenExerciseInfo: (exercise: Exercise) => void;
   removeExercise: (exId: string) => void;
   updateExerciseNotes: (exId: string, notes: string) => void;
   addSet: (exId: string) => void;
   removeSet: (exId: string, setId: string) => void;
-  updateSetField: (exId: string, setId: string, field: any, value: any) => void;
+  updateSetField: (exId: string, setId: string, field: keyof DraftSet, value: string) => void;
   onOpenSetTypeSelector: (exId: string, setId: string) => void;
 }
 

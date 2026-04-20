@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useAuthStore } from '../../store/useAuthStore';
 import { WorkoutService } from '../../api/workoutService';
+import type { RecentWorkoutSession } from '../../api/workoutService';
 import { useWorkoutSessionDetailStore } from '../../store/useWorkoutSessionDetailStore';
 import ScreenHeader from '../../components/ui/ScreenHeader';
 
@@ -20,7 +21,7 @@ export default function HomeScreen() {
   const { setTab } = useNavigationStore();
   const { openSessionDetail } = useWorkoutSessionDetailStore();
 
-  const { data: sessions, isLoading } = useQuery({
+  const { data: sessions, isLoading } = useQuery<RecentWorkoutSession[]>({
     queryKey: ['recentSessions', user?.id],
     queryFn: () => WorkoutService.getRecentSessions(user!.id),
     enabled: !!user?.id,
@@ -36,19 +37,18 @@ export default function HomeScreen() {
   // Calcolo Statistiche
   const totalSessions = sessions?.length || 0;
   const totalSeconds =
-    sessions?.reduce((acc: number, s: any) => acc + (s.duration_seconds || 0), 0) || 0;
+    sessions?.reduce((acc: number, s) => acc + (s.duration_seconds || 0), 0) || 0;
   const totalHours = Math.floor(totalSeconds / 3600);
   const totalMins = Math.floor((totalSeconds % 3600) / 60);
 
-  const totalVolume =
-    sessions?.reduce((acc: number, s: any) => acc + (s.total_volume || 0), 0) || 0;
+  const totalVolume = sessions?.reduce((acc: number, s) => acc + (s.total_volume || 0), 0) || 0;
   const avgVol = totalSessions > 0 ? totalVolume / totalSessions : 0;
   const formattedAvgVol =
     avgVol > 1000 ? `${(avgVol / 1000).toFixed(1)}k` : Math.round(avgVol).toString();
 
   const timeString = totalHours > 0 ? `${totalHours}h ${totalMins}m` : `${totalMins}m`;
 
-  const handleOpenRecentSession = (session: any) => {
+  const handleOpenRecentSession = (session: RecentWorkoutSession) => {
     openSessionDetail(session);
   };
 
@@ -95,12 +95,6 @@ export default function HomeScreen() {
             <Text className="text-white text-2xl font-[1000] leading-tight tracking-tight">
               {quote}
             </Text>
-            <View className="flex-row items-center mt-6">
-              <View className="bg-[#10B981] w-8 h-[2px] mr-3" />
-              <Text className="text-white/85 font-bold uppercase text-[10px] tracking-[2px]">
-                The Lab Protocol
-              </Text>
-            </View>
           </BlurView>
 
           {/* QUICK STATS */}
@@ -123,9 +117,14 @@ export default function HomeScreen() {
                 <View className="w-[1px] h-12 bg-white/10 mx-4" />
                 <View className="items-center flex-1">
                   <Text className="text-white font-bold uppercase text-[11px] tracking-[1px] mb-1 text-center">
-                    {t('home.total_time').replace(' ', '\n')}
+                    {t('home.total_time')}
                   </Text>
-                  <Text className="text-white text-3xl font-[1000] tracking-tighter mt-1">
+                  <Text
+                    className="text-white text-3xl font-[1000] tracking-tighter mt-1"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
                     {timeString}
                   </Text>
                 </View>
@@ -170,18 +169,20 @@ export default function HomeScreen() {
             {isLoading ? (
               <ActivityIndicator size="small" color="#10B981" />
             ) : sessions && sessions.length > 0 ? (
-              sessions.map((session: any, idx: number) => {
+              sessions.map((session, idx: number) => {
                 const durationMin = Math.floor((session.duration_seconds || 0) / 60);
                 const name = session.workout_templates?.name || 'Freestyle Session';
+                const completedAt = session.completed_at ? new Date(session.completed_at) : null;
                 const isYesterday =
-                  new Date(session.completed_at).toDateString() ===
-                  new Date(Date.now() - 86400000).toDateString();
+                  completedAt?.toDateString() === new Date(Date.now() - 86400000).toDateString();
                 const displayDate = isYesterday
                   ? t('common.yesterday')
-                  : new Date(session.completed_at).toLocaleDateString(i18n.language, {
-                      month: 'short',
-                      day: 'numeric',
-                    });
+                  : completedAt
+                    ? completedAt.toLocaleDateString(i18n.language, {
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : '-';
 
                 return (
                   <TouchableOpacity

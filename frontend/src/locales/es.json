@@ -23,7 +23,7 @@
   "auth": {
     "login_title": "Bienvenido de nuevo",
     "login_subtitle": "Inicia sesión para continuar",
-    "signup_title": "Únete a The Lab",
+    "signup_title": "Únete a SpotterAI",
     "signup_subtitle": "Crea tu cuenta para empezar",
     "full_name": "Nombre completo",
     "email": "Correo electrónico",
@@ -43,6 +43,7 @@
     "signup_success_body": "Registro completado. Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión."
   },
   "home": {
+    "hub_title": "Página principal",
     "motivation_title": "Motivación Diaria",
     "motivation_quote": "\"LA FUERZA NO PROVIENE DE GANAR. TUS LUCHAS DESARROLLAN TUS FORTALEZAS.\"",
     "activity_overview": "Resumen de Actividad",
@@ -68,6 +69,7 @@
     ]
   },
   "history": {
+    "chronology_title": "Cronología",
     "future_title": "Futuro",
     "future_subtitle": "¡Sigue entrenando!",
     "rest_day": "Día de Descanso",
@@ -82,10 +84,12 @@
     "templates_title": "Plantillas de Entrenamiento",
     "custom": "Personalizado",
     "ai_gen": "Generado por IA",
-    "exercise": "Ejercicio",
+    "coach": "Coach",
+    "coach_default_exercise": "Sentadilla con peso corporal",
+    "exercise": "Ejercicios",
     "my_routines": "Mis Rutinas",
     "add_new": "Nueva Rutina",
-    "no_routines": "No se encontraron rutinas.\nToca + per empezar.",
+    "no_routines": "No se encontraron rutinas.\nToca + para empezar.",
     "delete_title": "Eliminar Rutina",
     "delete_confirm": "¿Estás seguro de que quieres eliminar permanentemente \"{{name}}\"?",
     "delete_error": "No se pudo eliminar la rutina."
@@ -110,7 +114,7 @@
     "workouts_count": "Entrenamientos",
     "member_since": "Miembro desde {{date}}",
     "sign_out": "Cerrar Sesión",
-    "sign_out_confirm": "¿Estás seguro de che quieres cerrar sesión?",
+    "sign_out_confirm": "¿Estás seguro de que quieres cerrar sesión?",
     "best": "Mejor: {{weight}}kg • {{reps}} Reps",
     "no_records": "No hay récords registrados"
   },
@@ -223,6 +227,52 @@
       "volume": "Volumen",
       "reps": "Reps",
       "sets": "Series"
+    }
+  },
+  "coach": {
+    "title": "Coach de Técnica",
+    "intro_description": "Primero te muestro la ejecución y después iniciamos el tracking en vivo con correcciones técnicas en tiempo real.",
+    "media_ready": "Media del ejercicio disponible y listo para previsualización.",
+    "media_missing": "No hay media disponible: usaremos solo guía textual.",
+    "start_coach": "Iniciar Coach",
+    "calibration": "Calibración",
+    "calibration_description": "Colócate a unos 1.5m de la cámara. Cuando estés listo, iniciamos el tracking.",
+    "front": "Frontal",
+    "back": "Trasera",
+    "camera_permission_calibration": "Permite el acceso a la cámara para iniciar la calibración.",
+    "keep_body_visible": "Mantén hombros y caderas siempre visibles en el encuadre.",
+    "start_tracking": "Iniciar Tracking",
+    "repetitions": "Repeticiones",
+    "live_hint_label": "Hint en vivo",
+    "pose_stream_label": "Flujo de pose",
+    "metrics_label": "Métricas en vivo",
+    "overlay_next_step": "El overlay de keypoints y el análisis técnico se conectarán en el próximo paso.",
+    "add_rep": "+1 Rep",
+    "finish_set": "Terminar Set",
+    "summary_title": "Resumen Técnico",
+    "detected_reps": "Reps detectadas",
+    "main_errors": "Errores principales",
+    "how_to_improve": "Cómo mejorar",
+    "new_set": "Nuevo Set",
+    "close": "Cerrar",
+    "hints": {
+      "keep_back_neutral": "Mantén la espalda neutra",
+      "go_deeper": "Baja un poco más",
+      "stabilize_elbows": "Mantén los codos más estables",
+      "control_up_phase": "Controla la fase de subida",
+      "good_rep": "Buena rep, sigue así",
+      "detector_not_ready": "El detector en vivo aún no está activo en esta build"
+    },
+    "mistakes": {
+      "inconsistent_depth": "Profundidad inconsistente en 2 reps",
+      "too_fast_eccentric": "Fase excéntrica demasiado rápida",
+      "trunk_unstable": "Estabilidad del torso inconsistente",
+      "none_detected": "No se detectaron errores técnicos relevantes"
+    },
+    "tips": {
+      "pause_bottom": "Mantén 1 segundo de pausa abajo",
+      "stable_torso": "Mantén el torso estable durante toda la rep",
+      "breath_before_descent": "Respira antes de la bajada"
     }
   },
   "summary": {

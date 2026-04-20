@@ -31,7 +31,7 @@ export default function PremiumModal({ visible, onClose, onUpgrade }: PremiumMod
             <Crown size={32} color="black" />
           </View>
           <Text className="text-white text-3xl font-black tracking-tighter uppercase">
-            THE LAB PRO
+            SPOTTERAI PRO
           </Text>
           <Text className="text-gray-400 text-xs font-bold uppercase tracking-[3px] mt-1">
             {t('premium.subtitle')}

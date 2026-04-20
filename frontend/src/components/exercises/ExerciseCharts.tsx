@@ -2,19 +2,31 @@ import React, { useState } from 'react';
 import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
 import { LineChart, BarChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
+import type { ExerciseHistorySession } from '../../api/workoutService';
 
 interface ExerciseChartsProps {
-  historyData: any[];
+  historyData: ExerciseHistorySession[];
 }
 
 type ChartType = '1RM' | 'Volume' | 'Reps' | 'Serie';
+
+type ChartPoint = {
+  value: number;
+  label: string;
+  frontColor: string;
+};
+
+type ChartStyle = {
+  color: string;
+  fontSize: number;
+  fontWeight: 'bold';
+};
 
 export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
   const { t } = useTranslation();
   const { width } = Dimensions.get('window');
   const [activeMetric, setActiveMetric] = useState<ChartType>('1RM');
 
-  // No data UI
   if (!historyData || historyData.length < 2) {
     return (
       <View className="items-center justify-center py-6 mt-4 bg-black/35 rounded-2xl border border-white/10 px-4">
@@ -28,7 +40,6 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
     );
   }
 
-  // Costruisci i dati per il grafico (ordinati cronologicamente vecchi -> nuovi)
   const sortedData = [...historyData].reverse();
 
   const epley = (weight: number, reps: number) => {
@@ -42,16 +53,18 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
     return idx % step === 0 || idx === total - 1;
   };
 
-  // Mapper di dati dinamico
-  let chartData: any[] = [];
-  let yAxisStyle: any = { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 'bold' };
+  let chartData: ChartPoint[] = [];
+  const yAxisStyle: ChartStyle = {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+    fontWeight: 'bold',
+  };
 
   if (activeMetric === '1RM') {
-    chartData = sortedData.map((session: any, idx: number) => {
+    chartData = sortedData.map((session, idx) => {
       const sessionBestE1RM = Math.max(
-        ...session.sets.map((set: any) =>
-          epley(parseFloat(set.weight) || 0, parseInt(set.reps, 10) || 0),
-        ),
+        0,
+        ...session.sets.map((set) => epley(Number(set.weight) || 0, Number(set.reps) || 0)),
       );
       return {
         value: Number(sessionBestE1RM.toFixed(1)),
@@ -64,10 +77,10 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
       };
     });
   } else if (activeMetric === 'Volume') {
-    chartData = sortedData.map((session: any, idx: number) => {
-      const totalVolume = session.sets.reduce((acc: number, set: any) => {
-        const w = parseFloat(set.weight) || 0;
-        const r = parseInt(set.reps, 10) || 0;
+    chartData = sortedData.map((session, idx) => {
+      const totalVolume = session.sets.reduce((acc: number, set) => {
+        const w = Number(set.weight) || 0;
+        const r = Number(set.reps) || 0;
         return acc + w * r;
       }, 0);
       return {
@@ -81,11 +94,8 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
       };
     });
   } else if (activeMetric === 'Reps') {
-    chartData = sortedData.map((session: any, idx: number) => {
-      const totalReps = session.sets.reduce(
-        (acc: number, set: any) => acc + (parseInt(set.reps, 10) || 0),
-        0,
-      );
+    chartData = sortedData.map((session, idx) => {
+      const totalReps = session.sets.reduce((acc: number, set) => acc + (Number(set.reps) || 0), 0);
       return {
         value: totalReps,
         label: shouldShowLabel(idx, sortedData.length)
@@ -97,7 +107,7 @@ export default function ExerciseCharts({ historyData }: ExerciseChartsProps) {
       };
     });
   } else if (activeMetric === 'Serie') {
-    chartData = sortedData.map((session: any, idx: number) => {
+    chartData = sortedData.map((session, idx) => {
       return {
         value: session.sets.length,
         label: shouldShowLabel(idx, sortedData.length)

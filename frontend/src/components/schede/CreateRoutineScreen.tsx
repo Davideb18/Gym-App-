@@ -25,6 +25,183 @@ import RoutineExerciseCard from './CreateRoutine/RoutineExerciseCard';
 import SetTypeSelectorModal from './CreateRoutine/SetTypeSelectorModal';
 import { useExerciseModal } from '../../store/useExerciseModal';
 
+type ReorderRoutineModalProps = {
+  visible: boolean;
+  exercises: DraftExercise[];
+  onClose: () => void;
+  onReorder: (data: DraftExercise[]) => void;
+};
+
+function ReorderRoutineModal({ visible, exercises, onClose, onReorder }: ReorderRoutineModalProps) {
+  if (!visible) return null;
+
+  const reorderDialogWidthPct = 88;
+  const reorderDialogHeightPct = Math.max(36, Math.min(74, 24 + exercises.length * 8));
+  const reorderDialogTopPct = (100 - reorderDialogHeightPct) / 2;
+  const reorderDialogLeftPct = (100 - reorderDialogWidthPct) / 2;
+
+  return (
+    <View style={{ position: 'absolute', inset: 0, zIndex: 120 }}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onClose}
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: `${reorderDialogTopPct}%`,
+          left: `${reorderDialogLeftPct}%`,
+          width: `${reorderDialogWidthPct}%`,
+          height: `${reorderDialogHeightPct}%`,
+          borderRadius: 28,
+          overflow: 'hidden',
+          backgroundColor: '#171717',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
+        }}
+      >
+        <LinearGradient
+          colors={['#171717', '#4B5563']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', width: '100%', height: '100%' }}
+        />
+        <LinearGradient
+          colors={['rgba(16,185,129,0.28)', 'transparent']}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 140 }}
+        />
+
+        <View className="w-full items-center pt-3 pb-1">
+          <View className="w-12 h-1.5 bg-white/25 rounded-full" />
+        </View>
+        <View className="px-6 pb-2 flex-row items-center justify-between">
+          <Text className="text-white font-black text-sm uppercase tracking-widest">
+            Riordina esercizi
+          </Text>
+          <TouchableOpacity onPress={onClose} className="px-4 py-2 rounded-full bg-[#10B981]">
+            <Text className="text-black font-black text-xs uppercase tracking-widest">Fine</Text>
+          </TouchableOpacity>
+        </View>
+        <Text className="px-6 text-gray-300 text-xs mb-3">
+          Tieni premuto e trascina per cambiare ordine.
+        </Text>
+
+        <DraggableFlatList
+          data={exercises}
+          keyExtractor={(item) => item.localId}
+          activationDistance={0}
+          autoscrollSpeed={300}
+          autoscrollThreshold={60}
+          onDragEnd={({ data }) => {
+            onReorder([...(data as DraftExercise[])]);
+          }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 26 }}
+          renderItem={({ item, drag, isActive, getIndex }) => {
+            const rowIndex = getIndex?.() ?? exercises.findIndex((e) => e.localId === item.localId);
+
+            return (
+              <ScaleDecorator>
+                <TouchableOpacity
+                  onLongPress={drag}
+                  delayLongPress={120}
+                  activeOpacity={0.9}
+                  className={`rounded-2xl border px-4 py-4 mb-2 ${isActive ? 'bg-[#10B981]/18 border-[#10B981]/45' : 'bg-black/35 border-white/12'}`}
+                >
+                  <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                    Esercizio {(rowIndex + 1).toString()}
+                  </Text>
+                  <Text className="text-white font-black text-base" numberOfLines={1}>
+                    {item.exercise.name}
+                  </Text>
+                </TouchableOpacity>
+              </ScaleDecorator>
+            );
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+type RoutineHeaderProps = {
+  isSaving: boolean;
+  isEditing: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  t: (key: string) => string;
+};
+
+function RoutineHeader({ isSaving, isEditing, onClose, onSave, t }: RoutineHeaderProps) {
+  return (
+    <View className="flex-row justify-between items-center px-6 mb-4 mt-2">
+      <TouchableOpacity
+        onPress={onClose}
+        className="bg-white/10 p-2.5 rounded-full border border-white/5"
+      >
+        <X size={24} color="#FFF" />
+      </TouchableOpacity>
+      <Text className="text-white font-black text-sm uppercase tracking-widest">
+        {isEditing ? t('create_routine.edit_title') : t('create_routine.new_title')}
+      </Text>
+      <TouchableOpacity
+        onPress={onSave}
+        disabled={isSaving}
+        className={`${isSaving ? 'bg-white/20' : 'bg-[#10B981]'} p-2.5 rounded-full border border-transparent shadow-lg shadow-green-900/50`}
+      >
+        <Save size={20} color={isSaving ? '#FFF' : 'black'} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+type RoutineInfoCardProps = {
+  routineName: string;
+  routineDesc: string;
+  setRoutineName: (value: string) => void;
+  setRoutineDesc: (value: string) => void;
+  t: (key: string) => string;
+};
+
+function RoutineInfoCard({
+  routineName,
+  routineDesc,
+  setRoutineName,
+  setRoutineDesc,
+  t,
+}: RoutineInfoCardProps) {
+  return (
+    <View className="bg-black/40 rounded-3xl p-5 mb-5 border border-white/5">
+      <View className="flex-row items-center border-b border-white/10 pb-4 mb-4">
+        <View className="bg-white/10 p-2.5 rounded-xl mr-3">
+          <Layout size={20} color="#FFF" />
+        </View>
+        <TextInput
+          className="flex-1 text-white font-black text-2xl tracking-tight"
+          placeholder={t('create_routine.name_placeholder')}
+          placeholderTextColor="#666"
+          value={routineName}
+          onChangeText={setRoutineName}
+        />
+      </View>
+
+      <View className="flex-row items-center">
+        <View className="bg-white/5 p-2 rounded-lg mr-3">
+          <AlignLeft size={16} color="#999" />
+        </View>
+        <TextInput
+          className="flex-1 text-gray-300 font-medium text-sm"
+          placeholder={t('create_routine.desc_placeholder')}
+          placeholderTextColor="#666"
+          value={routineDesc}
+          onChangeText={setRoutineDesc}
+          multiline
+        />
+      </View>
+    </View>
+  );
+}
+
 export default function CreateRoutineScreen() {
   const { isOpen, templateToEdit, closeCreate } = useCreateRoutineStore();
   const { t } = useTranslation();
@@ -71,7 +248,7 @@ export default function CreateRoutineScreen() {
       }
       setIsReorderModalOpen(false);
     }
-  }, [isOpen, templateToEdit]);
+  }, [isOpen, templateToEdit, loadTemplate, reset]);
 
   const handleAddExercise = (exercise: Exercise) => {
     addExercise(exercise);
@@ -87,11 +264,6 @@ export default function CreateRoutineScreen() {
   const handleCloseReorder = () => {
     setIsReorderModalOpen(false);
   };
-
-  const reorderDialogWidthPct = 88;
-  const reorderDialogHeightPct = Math.max(36, Math.min(74, 24 + exercises.length * 8));
-  const reorderDialogTopPct = (100 - reorderDialogHeightPct) / 2;
-  const reorderDialogLeftPct = (100 - reorderDialogWidthPct) / 2;
 
   const handleOpenSetTypeSelector = (exerciseLocalId: string, setLocalId: string) => {
     setSelectedSetRef({ exerciseLocalId, setLocalId });
@@ -142,9 +314,10 @@ export default function CreateRoutineScreen() {
         Alert.alert(t('common.success'), t('create_routine.success_created'));
       }
       closeCreate();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setLocalError(err.message || t('create_routine.save_error'));
+      const message = err instanceof Error ? err.message : t('create_routine.save_error');
+      setLocalError(message);
     } finally {
       setIsSaving(false);
     }
@@ -161,7 +334,6 @@ export default function CreateRoutineScreen() {
         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
       />
 
-      {/* Contenitore APPLE STYLE BOTTOM SHEET */}
       <View
         style={{
           position: 'absolute',
@@ -204,55 +376,23 @@ export default function CreateRoutineScreen() {
           </View>
 
           {/* Header */}
-          <View className="flex-row justify-between items-center px-6 mb-4 mt-2">
-            <TouchableOpacity
-              onPress={closeCreate}
-              className="bg-white/10 p-2.5 rounded-full border border-white/5"
-            >
-              <X size={24} color="#FFF" />
-            </TouchableOpacity>
-            <Text className="text-white font-black text-sm uppercase tracking-widest">
-              {templateToEdit ? t('create_routine.edit_title') : t('create_routine.new_title')}
-            </Text>
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={isSaving}
-              className={`${isSaving ? 'bg-white/20' : 'bg-[#10B981]'} p-2.5 rounded-full border border-transparent shadow-lg shadow-green-900/50`}
-            >
-              <Save size={20} color={isSaving ? '#FFF' : 'black'} />
-            </TouchableOpacity>
-          </View>
+          <RoutineHeader
+            isSaving={isSaving}
+            isEditing={Boolean(templateToEdit)}
+            onClose={closeCreate}
+            onSave={handleSave}
+            t={t}
+          />
 
           <ScrollView className="flex-1 px-6 pt-4" contentContainerStyle={{ paddingBottom: 150 }}>
             {/* Box Titolo e Desc */}
-            <View className="bg-black/40 rounded-3xl p-5 mb-5 border border-white/5">
-              <View className="flex-row items-center border-b border-white/10 pb-4 mb-4">
-                <View className="bg-white/10 p-2.5 rounded-xl mr-3">
-                  <Layout size={20} color="#FFF" />
-                </View>
-                <TextInput
-                  className="flex-1 text-white font-black text-2xl tracking-tight"
-                  placeholder={t('create_routine.name_placeholder')}
-                  placeholderTextColor="#666"
-                  value={routineName}
-                  onChangeText={setRoutineName}
-                />
-              </View>
-
-              <View className="flex-row items-center">
-                <View className="bg-white/5 p-2 rounded-lg mr-3">
-                  <AlignLeft size={16} color="#999" />
-                </View>
-                <TextInput
-                  className="flex-1 text-gray-300 font-medium text-sm"
-                  placeholder={t('create_routine.desc_placeholder')}
-                  placeholderTextColor="#666"
-                  value={routineDesc}
-                  onChangeText={setRoutineDesc}
-                  multiline
-                />
-              </View>
-            </View>
+            <RoutineInfoCard
+              routineName={routineName}
+              routineDesc={routineDesc}
+              setRoutineName={setRoutineName}
+              setRoutineDesc={setRoutineDesc}
+              t={t}
+            />
 
             {localError ? (
               <View className="mb-4 p-4 bg-red-900/40 rounded-2xl border border-red-500/50">
@@ -328,94 +468,12 @@ export default function CreateRoutineScreen() {
         </KeyboardAvoidingView>
       </View>
 
-      {isReorderModalOpen ? (
-        <View style={{ position: 'absolute', inset: 0, zIndex: 120 }}>
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={handleCloseReorder}
-            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              top: `${reorderDialogTopPct}%`,
-              left: `${reorderDialogLeftPct}%`,
-              width: `${reorderDialogWidthPct}%`,
-              height: `${reorderDialogHeightPct}%`,
-              borderRadius: 28,
-              overflow: 'hidden',
-              backgroundColor: '#171717',
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
-            }}
-          >
-            <LinearGradient
-              colors={['#171717', '#4B5563']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ position: 'absolute', width: '100%', height: '100%' }}
-            />
-            <LinearGradient
-              colors={['rgba(16,185,129,0.28)', 'transparent']}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 140 }}
-            />
-
-            <View className="w-full items-center pt-3 pb-1">
-              <View className="w-12 h-1.5 bg-white/25 rounded-full" />
-            </View>
-            <View className="px-6 pb-2 flex-row items-center justify-between">
-              <Text className="text-white font-black text-sm uppercase tracking-widest">
-                Riordina esercizi
-              </Text>
-              <TouchableOpacity
-                onPress={handleCloseReorder}
-                className="px-4 py-2 rounded-full bg-[#10B981]"
-              >
-                <Text className="text-black font-black text-xs uppercase tracking-widest">
-                  Fine
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <Text className="px-6 text-gray-300 text-xs mb-3">
-              Tieni premuto e trascina per cambiare ordine.
-            </Text>
-
-            <DraggableFlatList
-              data={exercises}
-              keyExtractor={(item) => item.localId}
-              activationDistance={0}
-              autoscrollSpeed={300}
-              autoscrollThreshold={60}
-              onDragEnd={({ data }) => {
-                reorderExercises([...(data as DraftExercise[])]);
-              }}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 26 }}
-              renderItem={({ item, drag, isActive, getIndex }) => {
-                const rowIndex =
-                  getIndex?.() ?? exercises.findIndex((e) => e.localId === item.localId);
-
-                return (
-                  <ScaleDecorator>
-                    <TouchableOpacity
-                      onLongPress={drag}
-                      delayLongPress={120}
-                      activeOpacity={0.9}
-                      className={`rounded-2xl border px-4 py-4 mb-2 ${isActive ? 'bg-[#10B981]/18 border-[#10B981]/45' : 'bg-black/35 border-white/12'}`}
-                    >
-                      <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">
-                        Esercizio {(rowIndex + 1).toString()}
-                      </Text>
-                      <Text className="text-white font-black text-base" numberOfLines={1}>
-                        {item.exercise.name}
-                      </Text>
-                    </TouchableOpacity>
-                  </ScaleDecorator>
-                );
-              }}
-            />
-          </View>
-        </View>
-      ) : null}
+      <ReorderRoutineModal
+        visible={isReorderModalOpen}
+        exercises={exercises}
+        onClose={handleCloseReorder}
+        onReorder={reorderExercises}
+      />
 
       <ExerciseLibrary
         visible={isExerciseLibraryOpen}

@@ -23,7 +23,7 @@
   "auth": {
     "login_title": "Welcome Back",
     "login_subtitle": "Sign in to continue",
-    "signup_title": "Join The Lab",
+    "signup_title": "Join SpotterAI",
     "signup_subtitle": "Create your account to get started",
     "full_name": "Full Name",
     "email": "Email",
@@ -43,7 +43,7 @@
     "signup_success_body": "Signup complete. Check your email to confirm your account before logging in."
   },
   "home": {
-    "hub_title": "Workout Hub",
+    "hub_title": "Main Page",
     "motivation_title": "Daily Motivation",
     "motivation_quote": "\"STRENGTH DOES NOT COME FROM WINNING. YOUR STRUGGLES DEVELOP YOUR STRENGTHS.\"",
     "activity_overview": "Activity Overview",
@@ -86,16 +86,18 @@
     "templates_title": "Workout Templates",
     "custom": "Custom",
     "ai_gen": "AI Gen",
+    "coach": "Coach",
+    "coach_default_exercise": "Bodyweight Squat",
     "exercise": "Exercise",
     "my_routines": "My Routines",
     "add_new": "New Routine",
-    "no_routines": "No routines found.\nTap + to build your lab.",
+    "no_routines": "No routines found.\nTap + to build your Spotter AI setup.",
     "delete_title": "Delete Routine",
     "delete_confirm": "Are you sure you want to permanently delete \"{{name}}\"?",
     "delete_error": "Could not delete the routine."
   },
   "profile": {
-    "main_page_title": "Profile Main Page",
+    "main_page_title": "Profile",
     "settings": "Settings",
     "language": "Language",
     "prs_set": "PRs Set",
@@ -227,6 +229,52 @@
       "volume": "Volume",
       "reps": "Reps",
       "sets": "Sets"
+    }
+  },
+  "coach": {
+    "title": "Technique Coach",
+    "intro_description": "I will show the execution first, then we start live tracking with real-time technical feedback.",
+    "media_ready": "Exercise media available and ready for preview.",
+    "media_missing": "No media available: we will use text guidance only.",
+    "start_coach": "Start Coach",
+    "calibration": "Calibration",
+    "calibration_description": "Stand about 1.5m from the camera. When you are ready, we will start tracking.",
+    "front": "Front",
+    "back": "Back",
+    "camera_permission_calibration": "Allow camera access to start calibration.",
+    "keep_body_visible": "Keep shoulders and hips visible in the frame.",
+    "start_tracking": "Start Tracking",
+    "repetitions": "Repetitions",
+    "live_hint_label": "Live hint",
+    "pose_stream_label": "Pose stream",
+    "metrics_label": "Live metrics",
+    "overlay_next_step": "Keypoint overlay and technical analysis will be connected in the next step.",
+    "add_rep": "+1 Rep",
+    "finish_set": "Finish Set",
+    "summary_title": "Technique Summary",
+    "detected_reps": "Detected reps",
+    "main_errors": "Main mistakes",
+    "how_to_improve": "How to improve",
+    "new_set": "New Set",
+    "close": "Close",
+    "hints": {
+      "keep_back_neutral": "Keep your back neutral",
+      "go_deeper": "Go slightly deeper",
+      "stabilize_elbows": "Keep elbows more stable",
+      "control_up_phase": "Control the upward phase",
+      "good_rep": "Good rep, keep going",
+      "detector_not_ready": "Live detector not active yet in this build"
+    },
+    "mistakes": {
+      "inconsistent_depth": "Inconsistent depth on 2 reps",
+      "too_fast_eccentric": "Eccentric phase is too fast",
+      "trunk_unstable": "Torso stability is inconsistent",
+      "none_detected": "No major technical mistakes detected"
+    },
+    "tips": {
+      "pause_bottom": "Hold a 1 second pause at the bottom",
+      "stable_torso": "Keep your torso stable during the whole rep",
+      "breath_before_descent": "Take a breath before the descent"
     }
   },
   "summary": {

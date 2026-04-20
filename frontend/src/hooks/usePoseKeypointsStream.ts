@@ -1,11 +1,36 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PoseExerciseCode, PoseFrame, PoseJointName } from '../../../shared/types';
 import { POSE_EXERCISE_PROFILE_BY_CODE } from '../constants/poseExerciseProfiles';
 
 interface PoseKeypointsStreamOptions {
   enabled: boolean;
   exerciseCode: PoseExerciseCode;
+  captureFrame?: () => Promise<{ base64: string; width: number; height: number } | null>;
+  liveIntervalMs?: number;
 }
+
+type DetectorKeypoint = {
+  name?: string;
+  part?: string;
+  x?: number;
+  y?: number;
+  score?: number;
+};
+
+type DetectorPose = {
+  keypoints?: DetectorKeypoint[];
+};
+
+type PoseDetectorHandle = {
+  dispose?: () => void;
+};
+
+type PoseStreamSource =
+  | 'simulated'
+  | 'detector-initializing'
+  | 'detector-live'
+  | 'detector-ready-no-frame-input'
+  | 'detector-error';
 
 const BONE_CONNECTIONS: Array<[PoseJointName, PoseJointName]> = [
   ['left_shoulder', 'right_shoulder'],
@@ -20,19 +45,47 @@ const BONE_CONNECTIONS: Array<[PoseJointName, PoseJointName]> = [
   ['right_hip', 'right_knee'],
 ];
 
-function buildSimulatedFrame(requiredJoints: PoseJointName[], now: number): PoseFrame {
+function buildSimulatedFrame(
+  exerciseCode: PoseExerciseCode,
+  requiredJoints: PoseJointName[],
+  now: number,
+): PoseFrame {
   const t = now / 1000;
-  const shoulderY = 0.27 + Math.sin(t * 0.9) * 0.015;
-  const hipY = 0.52 + Math.sin(t * 1.1) * 0.03;
-  const kneeY = 0.74 + Math.sin(t * 1.2) * 0.04;
+  const oscillation = Math.sin(t * 1.6);
+
+  const isLowerBody = exerciseCode === 'squat' || exerciseCode === 'deadlift';
+  const isCurl = exerciseCode === 'curl';
+  const isPress = exerciseCode === 'bench_press' || exerciseCode === 'military_press';
+  const isRow = exerciseCode === 'barbell_row' || exerciseCode === 'seated_row';
+
+  const shoulderY = 0.27 + (isLowerBody ? oscillation * 0.012 : 0);
+  const hipY = 0.52 + (isLowerBody ? oscillation * 0.03 : 0);
+  const kneeY = 0.74 + (isLowerBody ? oscillation * 0.04 : 0);
+
+  const elbowPull = Math.max(0, oscillation);
+  const elbowPress = Math.max(0, -oscillation);
+  const elbowYOffset = isCurl
+    ? elbowPull * 0.03
+    : isRow
+      ? elbowPull * 0.018
+      : isPress
+        ? -elbowPress * 0.02
+        : 0;
+  const wristYOffset = isCurl
+    ? elbowPull * 0.06
+    : isRow
+      ? elbowPull * 0.03
+      : isPress
+        ? -elbowPress * 0.045
+        : 0;
 
   const base: Record<PoseJointName, { x: number; y: number }> = {
     left_shoulder: { x: 0.38, y: shoulderY },
     right_shoulder: { x: 0.62, y: shoulderY },
-    left_elbow: { x: 0.34, y: 0.43 + Math.sin(t * 1.2) * 0.02 },
-    right_elbow: { x: 0.66, y: 0.43 + Math.sin(t * 1.2) * 0.02 },
-    left_wrist: { x: 0.33, y: 0.56 + Math.sin(t * 1.3) * 0.02 },
-    right_wrist: { x: 0.67, y: 0.56 + Math.sin(t * 1.3) * 0.02 },
+    left_elbow: { x: 0.34, y: 0.43 + elbowYOffset },
+    right_elbow: { x: 0.66, y: 0.43 + elbowYOffset },
+    left_wrist: { x: 0.33, y: 0.56 + wristYOffset },
+    right_wrist: { x: 0.67, y: 0.56 + wristYOffset },
     left_hip: { x: 0.43, y: hipY },
     right_hip: { x: 0.57, y: hipY },
     left_knee: { x: 0.45, y: kneeY },
@@ -59,12 +112,109 @@ function buildSimulatedFrame(requiredJoints: PoseJointName[], now: number): Pose
   };
 }
 
-export function usePoseKeypointsStream({ enabled, exerciseCode }: PoseKeypointsStreamOptions) {
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function _mapDetectorPoseToFrame(
+  pose: DetectorPose,
+  requiredJoints: PoseJointName[],
+  width: number,
+  height: number,
+  now: number,
+): PoseFrame | null {
+  const keypoints = Array.isArray(pose?.keypoints) ? pose.keypoints : [];
+  if (keypoints.length === 0 || width <= 0 || height <= 0) return null;
+
+  const byName = new Map<string, DetectorKeypoint>();
+  keypoints.forEach((kp) => {
+    const key =
+      typeof kp?.name === 'string' ? kp.name : typeof kp?.part === 'string' ? kp.part : null;
+    if (key) byName.set(key, kp);
+  });
+
+  const joints = requiredJoints
+    .map((name) => {
+      const kp = byName.get(name);
+      if (!kp || typeof kp.x !== 'number' || typeof kp.y !== 'number') return null;
+      return {
+        name,
+        x: clamp01(kp.x / width),
+        y: clamp01(kp.y / height),
+        confidence: typeof kp.score === 'number' ? kp.score : 0.8,
+      };
+    })
+    .filter((joint): joint is NonNullable<typeof joint> => joint !== null);
+
+  if (joints.length === 0) return null;
+
+  const avgConfidence =
+    joints.reduce((sum, joint) => sum + (joint.confidence || 0), 0) / Math.max(1, joints.length);
+
+  return {
+    timestampMs: now,
+    joints,
+    modelConfidence: avgConfidence,
+  };
+}
+
+export function usePoseKeypointsStream({
+  enabled,
+  exerciseCode,
+  captureFrame,
+  liveIntervalMs: _liveIntervalMs = 650,
+}: PoseKeypointsStreamOptions) {
   const [frame, setFrame] = useState<PoseFrame | null>(null);
+  const [source, setSource] = useState<PoseStreamSource>('simulated');
+  const detectorRef = useRef<PoseDetectorHandle | null>(null);
 
   const requiredJoints = useMemo(() => {
     return POSE_EXERCISE_PROFILE_BY_CODE[exerciseCode]?.requiredJoints || [];
   }, [exerciseCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrapDetector = async () => {
+      if (!enabled) {
+        setSource('simulated');
+        return;
+      }
+
+      try {
+        setSource('detector-initializing');
+
+        const tf = await import('@tensorflow/tfjs');
+        const poseDetection = await import('@tensorflow-models/pose-detection');
+
+        await tf.ready();
+
+        // Warmup: ensure detector stack is available on the device.
+        const detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {
+          modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        });
+        detectorRef.current = detector;
+
+        if (!cancelled) {
+          setSource('detector-ready-no-frame-input');
+        }
+      } catch {
+        if (!cancelled) {
+          setSource('detector-error');
+        }
+      }
+    };
+
+    bootstrapDetector();
+
+    return () => {
+      cancelled = true;
+      if (detectorRef.current) {
+        detectorRef.current.dispose?.();
+        detectorRef.current = null;
+      }
+    };
+  }, [enabled, captureFrame]);
 
   useEffect(() => {
     if (!enabled) {
@@ -72,20 +222,24 @@ export function usePoseKeypointsStream({ enabled, exerciseCode }: PoseKeypointsS
       return;
     }
 
-    // Placeholder stream: keeps overlay pipeline and UI timing stable while real detector is integrated.
+    if (captureFrame && source === 'detector-live') {
+      return;
+    }
+
+    // Placeholder stream until camera-frame input is connected to the detector.
     const interval = setInterval(() => {
       const now = Date.now();
-      const nextFrame = buildSimulatedFrame(requiredJoints, now);
+      const nextFrame = buildSimulatedFrame(exerciseCode, requiredJoints, now);
       setFrame(nextFrame);
     }, 120);
 
     return () => clearInterval(interval);
-  }, [enabled, requiredJoints]);
+  }, [enabled, exerciseCode, requiredJoints, captureFrame, source]);
 
   return {
     frame,
     requiredJoints,
-    source: 'simulated' as const,
+    source,
     boneConnections: BONE_CONNECTIONS,
   };
 }

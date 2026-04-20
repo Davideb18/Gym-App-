@@ -20,6 +20,10 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const cache = new Map<string, string>();
 
+type QueryExecutor =
+  | postgres.Sql<Record<string, unknown>>
+  | postgres.TransactionSql<Record<string, unknown>>;
+
 const EXERCISE_NAME_OVERRIDES: Record<string, { it: string; es: string }> = {
   'hammer curl': {
     it: 'Curl a martello',
@@ -121,9 +125,10 @@ async function translateText(
         timeout: 15000,
       });
 
-      const translated = Array.isArray(data)
-        ? (data?.[0] || []).map((chunk: any) => (Array.isArray(chunk) ? chunk[0] : '')).join('')
-        : '';
+      const translatedParts = Array.isArray(data?.[0]) ? data[0] : [];
+      const translated = translatedParts
+        .map((chunk) => (Array.isArray(chunk) && typeof chunk[0] === 'string' ? chunk[0] : ''))
+        .join('');
       if (typeof translated === 'string' && translated.trim()) {
         cache.set(key, translated);
         return translated;
@@ -140,18 +145,74 @@ async function translateText(
   return normalized;
 }
 
-async function run() {
+function requireDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error('Missing DATABASE_URL in backend/.env');
   }
+  return databaseUrl;
+}
 
+function resolveTranslationTargetRows(rows: ExerciseRow[]): ExerciseRow[] {
   const limitEnv = process.env.TRANSLATE_LIMIT;
   const limit = limitEnv ? Number(limitEnv) : null;
-  const delayMs = Number(process.env.TRANSLATE_DELAY_MS || DEFAULT_DELAY_MS);
+  return limit ? rows.slice(0, limit) : rows;
+}
 
-  const sql = postgres(databaseUrl, { ssl: 'require' });
+async function buildTranslatedFields(row: ExerciseRow): Promise<{
+  nameIt: string;
+  nameEs: string;
+  instructionsIt: string;
+  instructionsEs: string;
+}> {
+  const resolveLocalizedValue = async (
+    existingValue: string | null,
+    sourceValue: string,
+    target: 'it' | 'es',
+    manualOverride?: string | null,
+  ): Promise<string> => {
+    if (existingValue) return existingValue;
+    if (manualOverride) return manualOverride;
+    if (!sourceValue) return sourceValue;
+    return translateText(sourceValue, target);
+  };
 
+  const sourceName = row.name || '';
+  const sourceInstructions = row.instructions || '';
+
+  const manualNameIt = getManualNameOverride(sourceName, 'it');
+  const manualNameEs = getManualNameOverride(sourceName, 'es');
+
+  const [nameIt, nameEs, instructionsIt, instructionsEs] = await Promise.all([
+    resolveLocalizedValue(row.name_it, sourceName, 'it', manualNameIt),
+    resolveLocalizedValue(row.name_es, sourceName, 'es', manualNameEs),
+    resolveLocalizedValue(row.instructions_it, sourceInstructions, 'it'),
+    resolveLocalizedValue(row.instructions_es, sourceInstructions, 'es'),
+  ]);
+
+  return {
+    nameIt,
+    nameEs,
+    instructionsIt,
+    instructionsEs,
+  };
+}
+
+async function updateExerciseTranslation(sql: QueryExecutor, row: ExerciseRow): Promise<void> {
+  const translated = await buildTranslatedFields(row);
+
+  await sql`
+    update public.exercises
+    set
+      name_it = ${translated.nameIt || null},
+      name_es = ${translated.nameEs || null},
+      instructions_it = ${translated.instructionsIt || null},
+      instructions_es = ${translated.instructionsEs || null}
+    where id = ${row.id}
+  `;
+}
+
+async function fetchRowsToTranslate(sql: QueryExecutor): Promise<ExerciseRow[]> {
   const rows = await sql<ExerciseRow[]>`
     select id, name, instructions, name_it, name_es, instructions_it, instructions_es
     from public.exercises
@@ -165,48 +226,24 @@ async function run() {
     order by created_at asc nulls last
   `;
 
-  const toTranslate = limit ? rows.slice(0, limit) : rows;
-  console.log(`Da tradurre: ${toTranslate.length} esercizi`);
+  return resolveTranslationTargetRows(rows);
+}
 
+async function processTranslations(
+  sql: QueryExecutor,
+  rows: ExerciseRow[],
+  delayMs: number,
+): Promise<{ done: number; failed: number }> {
   let done = 0;
   let failed = 0;
 
-  for (const row of toTranslate) {
+  for (const row of rows) {
     try {
-      const sourceName = row.name || '';
-      const sourceInstructions = row.instructions || '';
-
-      const manualNameIt = getManualNameOverride(sourceName, 'it');
-      const manualNameEs = getManualNameOverride(sourceName, 'es');
-
-      const [nameIt, nameEs, instructionsIt, instructionsEs] = await Promise.all([
-        row.name_it || manualNameIt || !sourceName
-          ? Promise.resolve(row.name_it || manualNameIt || sourceName)
-          : translateText(sourceName, 'it'),
-        row.name_es || manualNameEs || !sourceName
-          ? Promise.resolve(row.name_es || manualNameEs || sourceName)
-          : translateText(sourceName, 'es'),
-        row.instructions_it || !sourceInstructions
-          ? Promise.resolve(row.instructions_it || sourceInstructions)
-          : translateText(sourceInstructions, 'it'),
-        row.instructions_es || !sourceInstructions
-          ? Promise.resolve(row.instructions_es || sourceInstructions)
-          : translateText(sourceInstructions, 'es'),
-      ]);
-
-      await sql`
-        update public.exercises
-        set
-          name_it = ${nameIt || null},
-          name_es = ${nameEs || null},
-          instructions_it = ${instructionsIt || null},
-          instructions_es = ${instructionsEs || null}
-        where id = ${row.id}
-      `;
-
+      await updateExerciseTranslation(sql, row);
       done += 1;
-      if (done % 10 === 0 || done === toTranslate.length) {
-        console.log(`✓ Tradotti ${done}/${toTranslate.length}`);
+
+      if (done % 10 === 0 || done === rows.length) {
+        console.log(`✓ Tradotti ${done}/${rows.length}`);
       }
 
       if (delayMs > 0) {
@@ -217,6 +254,20 @@ async function run() {
       console.error(`✗ Errore traduzione id ${row.id}:`, error);
     }
   }
+
+  return { done, failed };
+}
+
+async function run() {
+  const databaseUrl = requireDatabaseUrl();
+  const delayMs = Number(process.env.TRANSLATE_DELAY_MS || DEFAULT_DELAY_MS);
+
+  const sql = postgres(databaseUrl, { ssl: 'require' });
+
+  const toTranslate = await fetchRowsToTranslate(sql);
+  console.log(`Da tradurre: ${toTranslate.length} esercizi`);
+
+  const { done, failed } = await processTranslations(sql, toTranslate, delayMs);
 
   console.log('Traduzione completata');
   console.log(`  Successi: ${done}`);

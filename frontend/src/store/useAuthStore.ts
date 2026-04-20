@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { Session, User } from '@supabase/supabase-js';
+import { AuthError, Session, User } from '@supabase/supabase-js';
 import { authService } from '../api/authService';
+
+type AuthActionResult = Promise<{ error: AuthError | null }>;
 
 interface AuthState {
   user: User | null;
@@ -8,10 +10,9 @@ interface AuthState {
   isLoading: boolean;
   setAuth: (session: Session | null) => void;
   signOut: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  signInWithOAuth: (provider: 'google' | 'apple' | 'facebook') => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => AuthActionResult;
+  signUp: (email: string, password: string, name: string) => AuthActionResult;
+  resetPassword: (email: string) => AuthActionResult;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -44,11 +45,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   resetPassword: async (email: string) => {
     const { error } = await authService.resetPassword(email);
-    return { error };
-  },
-
-  signInWithOAuth: async (provider: 'google' | 'apple' | 'facebook') => {
-    const { error } = await authService.signInWithOAuth(provider);
     return { error };
   },
 }));

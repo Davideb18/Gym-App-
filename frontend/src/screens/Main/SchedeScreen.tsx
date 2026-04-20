@@ -18,6 +18,7 @@ import SchedeTemplatesList from '../../components/schede/SchedeTemplatesList';
 
 import { useWorkoutPreviewStore } from '../../store/useWorkoutPreviewStore';
 import { useCreateRoutineStore } from '../../store/useCreateRoutineStore';
+import { useFormCoachStore } from '../../store/useFormCoachStore';
 
 type WorkoutTemplateRow = Pick<WorkoutTemplate, 'id' | 'name' | 'description' | 'created_at'>;
 
@@ -34,6 +35,7 @@ export default function SchedeScreen() {
   // Global Stores per le schermate a tutto schermo (no Modals)
   const { openPreview } = useWorkoutPreviewStore();
   const { openCreate } = useCreateRoutineStore();
+  const { openCoach } = useFormCoachStore();
 
   useEffect(() => {
     let mounted = true;
@@ -82,6 +84,54 @@ export default function SchedeScreen() {
     openCreate(); // Usa lo store globale per aprire la schermata
   };
 
+  const openCoachQuickFlow = async () => {
+    const { data } = await supabase
+      .from('exercises')
+      .select('id, name, image_url, videos_data')
+      .order('name', { ascending: true })
+      .limit(30);
+
+    const extractMediaUrls = (rawVideoData: unknown, fallbackImage?: string | null) => {
+      if (Array.isArray(rawVideoData)) {
+        const cleaned = rawVideoData.filter(
+          (item): item is string => typeof item === 'string' && item.trim().length > 0,
+        );
+        if (cleaned.length > 0) return cleaned;
+      }
+
+      if (typeof rawVideoData === 'string' && rawVideoData.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(rawVideoData);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter(
+              (item): item is string => typeof item === 'string' && item.trim().length > 0,
+            );
+            if (cleaned.length > 0) return cleaned;
+          }
+        } catch {
+          // Ignore malformed JSON and continue with image fallback.
+        }
+      }
+
+      return fallbackImage ? [fallbackImage] : [];
+    };
+
+    const firstWithMedia = (data || []).find(
+      (exercise) => extractMediaUrls(exercise.videos_data, exercise.image_url).length > 0,
+    );
+    const pick = firstWithMedia || data?.[0] || null;
+
+    const mediaUrls = pick ? extractMediaUrls(pick.videos_data, pick.image_url) : [];
+    const mediaUrl = mediaUrls[0] || null;
+
+    openCoach({
+      exerciseId: pick?.id || 'coach-quick-start',
+      exerciseName: pick?.name || t('workouts.coach_default_exercise'),
+      mediaUrl,
+      mediaUrls,
+    });
+  };
+
   const openRoutine = (templateId: string) => {
     openPreview(templateId); // Usa lo store globale
   };
@@ -96,8 +146,9 @@ export default function SchedeScreen() {
           try {
             await WorkoutService.deleteTemplate(templateId, userId!);
             await refetchTemplates();
-          } catch (err: any) {
-            Alert.alert(t('common.error'), err?.message || t('workouts.delete_error'));
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : t('workouts.delete_error');
+            Alert.alert(t('common.error'), message);
           }
         },
       },
@@ -169,9 +220,10 @@ export default function SchedeScreen() {
 
           <SchedeQuickActions
             customLabel={t('workouts.custom')}
-            aiLabel={t('workouts.ai_gen')}
+            coachLabel={t('workouts.coach')}
             exerciseLabel={t('workouts.exercise')}
             onOpenCreate={openCreateRoutineFlow}
+            onOpenCoach={openCoachQuickFlow}
             onOpenLibrary={() => setIsWikiOpen(true)}
           />
 

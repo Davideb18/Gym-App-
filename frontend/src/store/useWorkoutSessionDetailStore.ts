@@ -1,9 +1,10 @@
 import { create } from 'zustand';
+import type { RecentWorkoutSession } from '../api/workoutService';
 
 type WorkoutSessionDetailState = {
   isOpen: boolean;
-  session: any | null;
-  openSessionDetail: (session: any) => void;
+  session: RecentWorkoutSession | null;
+  openSessionDetail: (session: RecentWorkoutSession) => void;
   closeSessionDetail: () => void;
 };
 

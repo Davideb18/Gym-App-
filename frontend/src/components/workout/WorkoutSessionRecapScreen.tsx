@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Clock3, Dumbbell, Activity } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useWorkoutSessionDetailStore } from '../../store/useWorkoutSessionDetailStore';
+import type { RecentPerformedSet } from '../../api/workoutService';
 
 export default function WorkoutSessionRecapScreen() {
   const { t, i18n } = useTranslation();
@@ -11,9 +12,9 @@ export default function WorkoutSessionRecapScreen() {
 
   const groupedExercises = useMemo(() => {
     const sets = session?.performed_sets || [];
-    const groups = new Map<string, any[]>();
+    const groups = new Map<string, RecentPerformedSet[]>();
 
-    sets.forEach((set: any) => {
+    sets.forEach((set) => {
       const exName = set?.exercises?.name || t('workouts.exercise');
       if (!groups.has(exName)) groups.set(exName, []);
       groups.get(exName)?.push(set);
@@ -149,7 +150,7 @@ export default function WorkoutSessionRecapScreen() {
                   </Text>
                 </View>
 
-                {exercise.sets.map((set: any) => (
+                {exercise.sets.map((set) => (
                   <View key={set.id} className="flex-row items-center py-2 border-b border-white/5">
                     <Text className="text-white font-black text-xs w-10 text-center">
                       {set?.set_number || '-'}

@@ -14,6 +14,7 @@ interface FormCoachState {
   exerciseId: string | null;
   exerciseName: string;
   mediaUrl: string | null;
+  mediaUrls: string[];
   repCount: number;
   liveHint: string;
   summary: FormCoachSummary | null;
@@ -21,13 +22,14 @@ interface FormCoachState {
     exerciseId: string;
     exerciseName: string;
     mediaUrl?: string | null;
+    mediaUrls?: string[];
   }) => void;
   closeCoach: () => void;
   startCalibration: () => void;
   startTracking: () => void;
   incrementRep: () => void;
   setLiveHint: (hint: string) => void;
-  completeTracking: () => void;
+  completeTracking: (payload?: Partial<FormCoachSummary>) => void;
   backToIntro: () => void;
 }
 
@@ -37,19 +39,21 @@ export const useFormCoachStore = create<FormCoachState>((set, get) => ({
   exerciseId: null,
   exerciseName: '',
   mediaUrl: null,
+  mediaUrls: [],
   repCount: 0,
-  liveHint: 'Mantieni la schiena neutra',
+  liveHint: 'coach.hints.keep_back_neutral',
   summary: null,
 
-  openCoach: ({ exerciseId, exerciseName, mediaUrl }) =>
+  openCoach: ({ exerciseId, exerciseName, mediaUrl, mediaUrls }) =>
     set({
       isOpen: true,
       mode: 'intro',
       exerciseId,
       exerciseName,
       mediaUrl: mediaUrl || null,
+      mediaUrls: mediaUrls || (mediaUrl ? [mediaUrl] : []),
       repCount: 0,
-      liveHint: 'Mantieni la schiena neutra',
+      liveHint: 'coach.hints.keep_back_neutral',
       summary: null,
     }),
 
@@ -60,8 +64,9 @@ export const useFormCoachStore = create<FormCoachState>((set, get) => ({
       exerciseId: null,
       exerciseName: '',
       mediaUrl: null,
+      mediaUrls: [],
       repCount: 0,
-      liveHint: 'Mantieni la schiena neutra',
+      liveHint: 'coach.hints.keep_back_neutral',
       summary: null,
     }),
 
@@ -72,10 +77,10 @@ export const useFormCoachStore = create<FormCoachState>((set, get) => ({
   incrementRep: () => {
     const nextRep = get().repCount + 1;
     const hints = [
-      'Scendi ancora leggermente',
-      'Gomiti piu fermi',
-      'Controlla la velocita in risalita',
-      'Buona rep, continua cosi',
+      'coach.hints.go_deeper',
+      'coach.hints.stabilize_elbows',
+      'coach.hints.control_up_phase',
+      'coach.hints.good_rep',
     ];
 
     set({
@@ -86,20 +91,20 @@ export const useFormCoachStore = create<FormCoachState>((set, get) => ({
 
   setLiveHint: (hint: string) => set({ liveHint: hint }),
 
-  completeTracking: () => {
+  completeTracking: (payload) => {
     const reps = get().repCount;
     const mistakes =
-      reps >= 6 ? ['Profondita incostante su 2 reps'] : ['Troppo veloce in eccentrica'];
+      reps >= 6 ? ['coach.mistakes.inconsistent_depth'] : ['coach.mistakes.too_fast_eccentric'];
 
     set({
       mode: 'summary',
       summary: {
-        repCount: reps,
-        mistakes,
-        tips: [
-          'Mantieni 1 secondo di pausa in basso',
-          'Tieni il tronco stabile durante tutta la rep',
-          'Respira prima della discesa',
+        repCount: payload?.repCount ?? reps,
+        mistakes: payload?.mistakes ?? mistakes,
+        tips: payload?.tips ?? [
+          'coach.tips.pause_bottom',
+          'coach.tips.stable_torso',
+          'coach.tips.breath_before_descent',
         ],
       },
     });

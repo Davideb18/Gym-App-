@@ -18,6 +18,39 @@ import ProfilePrList from '../../components/profile/ProfilePrList';
 import LanguageSelectorModal from '../../components/profile/LanguageSelectorModal';
 import { ProfileWorkoutAnalytics } from '../../components/profile';
 
+type ProfileExercise = {
+  id: string;
+  name: string;
+  target_muscle_group?: string | null;
+  target_muscle?: string | null;
+  equipment?: string | null;
+  instructions?: string | null;
+};
+
+type ProfilePerformedSet = {
+  weight?: number | string | null;
+  reps?: number | string | null;
+  is_completed?: boolean | null;
+  exercises?: ProfileExercise | ProfileExercise[] | null;
+};
+
+type ProfileSession = {
+  performed_sets?: ProfilePerformedSet[] | null;
+};
+
+type ProfilePr = {
+  name: string;
+  weight: number;
+  reps: number;
+  exercise: ProfileExercise;
+};
+
+type ProfileProgressionSession = {
+  total_volume?: number | null;
+  duration_seconds?: number | null;
+  completed_at?: string | null;
+};
+
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
   const { t, i18n } = useTranslation();
@@ -43,7 +76,7 @@ export default function ProfileScreen() {
     setLangModalVisible(false);
   };
 
-  const { data: prs, isLoading: loadingPRs } = useQuery({
+  const { data: prs, isLoading: loadingPRs } = useQuery<ProfilePr[]>({
     queryKey: ['personalRecords', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -67,12 +100,15 @@ export default function ProfileScreen() {
 
       if (error || !data) return [];
 
-      const bestLifts = new Map<string, { weight: number; reps: number; exercise: any }>();
-      data.forEach((session: any) => {
-        (session?.performed_sets || []).forEach((set: any) => {
+      const bestLifts = new Map<
+        string,
+        { weight: number; reps: number; exercise: ProfileExercise }
+      >();
+      ((data as unknown as ProfileSession[]) || []).forEach((session) => {
+        (session?.performed_sets || []).forEach((set) => {
           if (!set?.is_completed) return;
 
-          const ex = set.exercises;
+          const ex = Array.isArray(set.exercises) ? set.exercises[0] : set.exercises;
           const w = Number(set.weight) || 0;
           const reps = Number(set.reps) || 0;
           if (!ex?.name || w <= 0) return;
@@ -85,7 +121,7 @@ export default function ProfileScreen() {
       });
 
       return Array.from(bestLifts.entries())
-        .map(([name, stats]: any) => ({
+        .map(([name, stats]) => ({
           name,
           weight: stats.weight,
           reps: stats.reps,
@@ -111,7 +147,7 @@ export default function ProfileScreen() {
     enabled: !!user?.id,
   });
 
-  const { data: progressionSessions = [] } = useQuery({
+  const { data: progressionSessions = [] } = useQuery<ProfileProgressionSession[]>({
     queryKey: ['profileProgressionSessions', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -122,7 +158,11 @@ export default function ProfileScreen() {
         .order('completed_at', { ascending: false });
 
       if (error || !data) return [];
-      return data;
+      return data.map((session) => ({
+        completed_at: session.completed_at,
+        duration_seconds: Number(session.duration_seconds) || 0,
+        total_volume: Number(session.total_volume) || 0,
+      }));
     },
     enabled: !!user?.id,
   });
@@ -132,10 +172,10 @@ export default function ProfileScreen() {
     const days30 = 30 * 24 * 60 * 60 * 1000;
 
     const totalVolume = progressionSessions.reduce(
-      (acc: number, s: any) => acc + (Number(s.total_volume) || 0),
+      (acc: number, s) => acc + (Number(s.total_volume) || 0),
       0,
     );
-    const last30Workouts = progressionSessions.filter((s: any) => {
+    const last30Workouts = progressionSessions.filter((s) => {
       if (!s?.completed_at) return false;
       return now - new Date(s.completed_at).getTime() <= days30;
     }).length;
@@ -207,20 +247,20 @@ export default function ProfileScreen() {
             levelLabel={t('profile.level')}
           />
 
-            <ProfileWorkoutAnalytics
-              sessions={progressionSessions || []}
-              title={t('profile.analytics_title')}
-              trendTitle={t('profile.duration_trend_title')}
-              reportTitle={t('profile.monthly_report_title')}
-              thisMonthLabel={t('profile.this_month')}
-              lastMonthLabel={t('profile.last_month')}
-              sessionsLabel={t('profile.sessions_label')}
-              durationLabel={t('profile.duration_label')}
-              volumeLabel={t('profile.volume_label')}
-              avgDurationLabel={t('profile.avg_duration_label')}
-              noDataLabel={t('profile.no_workout_data')}
-              compareLabel={t('profile.compare_to_last_month')}
-            />
+          <ProfileWorkoutAnalytics
+            sessions={progressionSessions || []}
+            title={t('profile.analytics_title')}
+            trendTitle={t('profile.duration_trend_title')}
+            reportTitle={t('profile.monthly_report_title')}
+            thisMonthLabel={t('profile.this_month')}
+            lastMonthLabel={t('profile.last_month')}
+            sessionsLabel={t('profile.sessions_label')}
+            durationLabel={t('profile.duration_label')}
+            volumeLabel={t('profile.volume_label')}
+            avgDurationLabel={t('profile.avg_duration_label')}
+            noDataLabel={t('profile.no_workout_data')}
+            compareLabel={t('profile.compare_to_last_month')}
+          />
 
           {/* Menu Impostazioni */}
           <Text className="text-white text-[10px] font-black uppercase tracking-[4px] mb-4 mt-2 px-1">

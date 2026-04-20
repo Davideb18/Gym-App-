@@ -92,7 +92,7 @@ export default function ExerciseLibrary({
   visible = true,
   onClose,
   onExerciseAdd,
-  selectionMode = 'view',
+  selectionMode: _selectionMode = 'view',
 }: Props) {
   const { t, i18n } = useTranslation();
 
@@ -127,12 +127,6 @@ export default function ExerciseLibrary({
       setIsSortMenuOpen(false);
     }
   }, [fetchExercises, visible]);
-
-  useEffect(() => {
-    if (!visible) {
-      setIsSortMenuOpen(false);
-    }
-  }, [visible]);
 
   const muscleOptions = useMemo(
     () =>

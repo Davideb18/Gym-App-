@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Alert,
   ActivityIndicator,
   TouchableWithoutFeedback,
@@ -18,13 +17,13 @@ import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../../store/useAuthStore';
-import Animated, { 
-  FadeInDown, 
-  FadeInUp, 
+import Animated, {
+  FadeInDown,
+  FadeInUp,
   FadeIn,
   useSharedValue,
   useAnimatedStyle,
-  withSpring
+  withSpring,
 } from 'react-native-reanimated';
 import { Mail, Lock, User, Eye, EyeOff, Square, CheckSquare } from 'lucide-react-native';
 
@@ -40,7 +39,7 @@ export default function SignupScreen({ onGoToLogin }: SignupScreenProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // Aggiunte per GDPR
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreeHealthData, setAgreeHealthData] = useState(false);
@@ -65,10 +64,7 @@ export default function SignupScreen({ onGoToLogin }: SignupScreenProps) {
       return;
     }
     if (!agreeTerms || !agreeHealthData) {
-      Alert.alert(
-        t('common.mandatory_consents'), 
-        t('common.mandatory_consents_body')
-      );
+      Alert.alert(t('common.mandatory_consents'), t('common.mandatory_consents_body'));
       return;
     }
 
@@ -78,10 +74,7 @@ export default function SignupScreen({ onGoToLogin }: SignupScreenProps) {
     if (error) {
       Alert.alert(t('common.error'), error.message);
     } else {
-      Alert.alert(
-        t('auth.signup_success'), 
-        t('auth.signup_success_body')
-      );
+      Alert.alert(t('auth.signup_success'), t('auth.signup_success_body'));
       onGoToLogin();
     }
     setLoading(false);
@@ -93,69 +86,176 @@ export default function SignupScreen({ onGoToLogin }: SignupScreenProps) {
         <StatusBar style="dark" />
         <LinearGradient
           colors={['#18181b', '#52525b', '#e4e4e7', '#ffffff', '#d4d4d8']}
-          locations={[0, 0.15, 0.40, 0.85, 1]}
+          locations={[0, 0.15, 0.4, 0.85, 1]}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 pt-20 px-6 w-full">
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}>
-            <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} className="items-center mb-8 w-full">
-              <Image source={require('../../../assets/the_lab_logo.png')} style={{ width: 220, height: 200, marginBottom: -40 }} resizeMode="contain" />
-              <Text className="text-[34px] font-bold text-[#111111] mt-0 mb-1 text-center tracking-tight">{t('auth.signup_title')}</Text>
-              <Text className="text-[16px] font-medium text-[#111111]/70 text-center">{t('auth.signup_subtitle')}</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 pt-20 px-6 w-full"
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+          >
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(1000).springify()}
+              className="items-center mb-8 w-full"
+            >
+              <View className="items-center justify-center mb-4">
+                <View className="flex-row items-center">
+                  <Text className="text-[34px] font-black text-[#111111] tracking-tight">
+                    SPOTTER
+                  </Text>
+                  <View className="ml-1 bg-[#10B981] px-2 py-1 rounded-md">
+                    <Text className="text-black text-[24px] font-black italic">AI</Text>
+                  </View>
+                </View>
+              </View>
+              <Text className="text-[34px] font-bold text-[#111111] mt-0 mb-1 text-center tracking-tight">
+                {t('auth.signup_title')}
+              </Text>
+              <Text className="text-[16px] font-medium text-[#111111]/70 text-center">
+                {t('auth.signup_subtitle')}
+              </Text>
             </Animated.View>
 
-            <Animated.View entering={FadeInUp.delay(400).duration(1000).springify()} className="w-full mt-2 gap-y-4">
+            <Animated.View
+              entering={FadeInUp.delay(400).duration(1000).springify()}
+              className="w-full mt-2 gap-y-4"
+            >
               <View className="bg-transparent border-[1.5px] border-[#1c1c1c] rounded-xl flex-row items-center px-4 py-4">
                 <User size={20} color="#1c1c1c" strokeWidth={2} />
-                <TextInput placeholder={t('auth.full_name')} placeholderTextColor="#666" className="flex-1 px-3 py-0 text-[#1c1c1c] text-[16px] font-medium" value={name} onChangeText={setName} />
+                <TextInput
+                  placeholder={t('auth.full_name')}
+                  placeholderTextColor="#666"
+                  className="flex-1 px-3 py-0 text-[#1c1c1c] text-[16px] font-medium"
+                  value={name}
+                  onChangeText={setName}
+                />
               </View>
 
               <View className="bg-transparent border-[1.5px] border-[#1c1c1c] rounded-xl flex-row items-center px-4 py-4">
                 <Mail size={20} color="#1c1c1c" strokeWidth={2} />
-                <TextInput placeholder={t('auth.email')} placeholderTextColor="#666" className="flex-1 px-3 py-0 text-[#1c1c1c] text-[16px] font-medium" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
+                <TextInput
+                  placeholder={t('auth.email')}
+                  placeholderTextColor="#666"
+                  className="flex-1 px-3 py-0 text-[#1c1c1c] text-[16px] font-medium"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                />
               </View>
 
               <View className="bg-transparent border-[1.5px] border-[#1c1c1c] rounded-xl flex-row items-center px-4 py-4">
                 <Lock size={20} color="#1c1c1c" strokeWidth={2} />
-                <TextInput placeholder={t('auth.password')} placeholderTextColor="#666" secureTextEntry={!showPassword} className="flex-1 px-3 py-0 text-[#1c1c1c] text-[16px] font-medium" value={password} onChangeText={setPassword} />
+                <TextInput
+                  placeholder={t('auth.password')}
+                  placeholderTextColor="#666"
+                  secureTextEntry={!showPassword}
+                  className="flex-1 px-3 py-0 text-[#1c1c1c] text-[16px] font-medium"
+                  value={password}
+                  onChangeText={setPassword}
+                />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="pr-2">
-                  {showPassword ? <EyeOff size={20} color="#1c1c1c" strokeWidth={2} /> : <Eye size={20} color="#1c1c1c" strokeWidth={2} />}
+                  {showPassword ? (
+                    <EyeOff size={20} color="#1c1c1c" strokeWidth={2} />
+                  ) : (
+                    <Eye size={20} color="#1c1c1c" strokeWidth={2} />
+                  )}
                 </TouchableOpacity>
               </View>
 
-              <Animated.View entering={FadeIn.delay(100).duration(500)} className="mt-2 mb-2 gap-y-3">
+              <Animated.View
+                entering={FadeIn.delay(100).duration(500)}
+                className="mt-2 mb-2 gap-y-3"
+              >
                 <View className="flex-row items-center pr-4">
                   <TouchableOpacity activeOpacity={0.7} onPress={() => setAgreeTerms(!agreeTerms)}>
-                    {agreeTerms ? <CheckSquare size={22} color="#1c1c1c" strokeWidth={2} /> : <Square size={22} color="#1c1c1c" strokeWidth={1.5} />}
+                    {agreeTerms ? (
+                      <CheckSquare size={22} color="#1c1c1c" strokeWidth={2} />
+                    ) : (
+                      <Square size={22} color="#1c1c1c" strokeWidth={1.5} />
+                    )}
                   </TouchableOpacity>
                   <Text className="text-[#1c1c1c]/80 text-[13px] ml-3 flex-1 leading-5">
-                    {t('auth.agree_terms').split('.').shift()}. <Text className="text-blue-600 font-bold" onPress={() => Linking.openURL('https://www.iubenda.com')}>{t('auth.terms_link')}</Text> e <Text className="text-blue-600 font-bold" onPress={() => Linking.openURL('https://www.iubenda.com')}>{t('auth.privacy_link')}</Text>.
+                    {t('auth.agree_terms').split('.').shift()}.{' '}
+                    <Text
+                      className="text-blue-600 font-bold"
+                      onPress={() => Linking.openURL('https://www.iubenda.com')}
+                    >
+                      {t('auth.terms_link')}
+                    </Text>{' '}
+                    e{' '}
+                    <Text
+                      className="text-blue-600 font-bold"
+                      onPress={() => Linking.openURL('https://www.iubenda.com')}
+                    >
+                      {t('auth.privacy_link')}
+                    </Text>
+                    .
                   </Text>
                 </View>
- 
+
                 <View className="flex-row items-start pr-4">
-                  <TouchableOpacity activeOpacity={0.7} onPress={() => setAgreeHealthData(!agreeHealthData)} className="mt-[2px]">
-                    {agreeHealthData ? <CheckSquare size={22} color="#1c1c1c" strokeWidth={2} /> : <Square size={22} color="#1c1c1c" strokeWidth={1.5} />}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setAgreeHealthData(!agreeHealthData)}
+                    className="mt-[2px]"
+                  >
+                    {agreeHealthData ? (
+                      <CheckSquare size={22} color="#1c1c1c" strokeWidth={2} />
+                    ) : (
+                      <Square size={22} color="#1c1c1c" strokeWidth={1.5} />
+                    )}
                   </TouchableOpacity>
                   <Text className="text-[#1c1c1c]/80 text-[13px] ml-3 flex-1 leading-5">
-                    {t('auth.agree_health').split('.').shift()} <Text className="text-blue-600 font-bold" onPress={() => Linking.openURL('https://commission.europa.eu/')}>{t('auth.health_data_link')}</Text> esclusivamente per la generazione delle schede.
+                    {t('auth.agree_health').split('.').shift()}{' '}
+                    <Text
+                      className="text-blue-600 font-bold"
+                      onPress={() => Linking.openURL('https://commission.europa.eu/')}
+                    >
+                      {t('auth.health_data_link')}
+                    </Text>{' '}
+                    esclusivamente per la generazione delle schede.
                   </Text>
                 </View>
               </Animated.View>
 
-              <TouchableOpacity activeOpacity={0.8} className="mt-4" onPressIn={() => (scale.value = withSpring(0.97))} onPressOut={() => (scale.value = withSpring(1))} onPress={handleSignUp} disabled={loading}>
-                <Animated.View style={buttonAnimatedStyle} className={`bg-[#222] py-4 rounded-full items-center shadow-lg ${loading ? 'opacity-70' : ''}`}>
-                  {loading ? <ActivityIndicator color="#FFF" /> : <Text className="text-white text-[16px] font-[800] tracking-wide">{t('auth.sign_up')}</Text>}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                className="mt-4"
+                onPressIn={() => (scale.value = withSpring(0.97))}
+                onPressOut={() => (scale.value = withSpring(1))}
+                onPress={handleSignUp}
+                disabled={loading}
+              >
+                <Animated.View
+                  style={buttonAnimatedStyle}
+                  className={`bg-[#222] py-4 rounded-full items-center shadow-lg ${loading ? 'opacity-70' : ''}`}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text className="text-white text-[16px] font-[800] tracking-wide">
+                      {t('auth.sign_up')}
+                    </Text>
+                  )}
                 </Animated.View>
               </TouchableOpacity>
- 
-              <TouchableOpacity activeOpacity={0.7} onPress={onGoToLogin} className="items-center mt-6">
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onGoToLogin}
+                className="items-center mt-6"
+              >
                 <View className="flex-row items-center">
-                  <Text className="text-[#1c1c1c]/60 font-medium text-[16px]">{t('auth.already_have_account')}</Text>
+                  <Text className="text-[#1c1c1c]/60 font-medium text-[16px]">
+                    {t('auth.already_have_account')}
+                  </Text>
                   <Text className="text-[#1c1c1c] font-black text-[16px]">{t('auth.sign_in')}</Text>
                 </View>
               </TouchableOpacity>
-
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>

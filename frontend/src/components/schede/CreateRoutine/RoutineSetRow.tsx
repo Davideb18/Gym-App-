@@ -2,13 +2,19 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import type { DraftSet } from '../../../hooks/useWorkoutCreation';
 
 interface Props {
-  set: any; // Using exact from DraftExercise sets
+  set: DraftSet;
   setIndex: number;
   exerciseLocalId: string;
   onOpenSetTypeSelector: (exerciseLocalId: string, setLocalId: string) => void;
-  updateSetField: (exerciseLocalId: string, setLocalId: string, field: any, value: any) => void;
+  updateSetField: (
+    exerciseLocalId: string,
+    setLocalId: string,
+    field: keyof DraftSet,
+    value: string,
+  ) => void;
   removeSet: (exerciseLocalId: string, setLocalId: string) => void;
 }
 
@@ -84,7 +90,6 @@ export default function RoutineSetRow({
         </View>
       </View>
 
-      {/* EXTRA FIELDS PER PREMIUM SET TYPES */}
       {set.setType === 'dropset' && (
         <View className="flex-row items-center mt-3 px-1 mb-1">
           <View className="flex-1 mr-2">
@@ -154,7 +159,6 @@ export default function RoutineSetRow({
           </View>
         </View>
       )}
-      {/* SPIEGAZIONI TECNICHE AVANZATE SENZA INPUT EXTRA */}
       {set.setType === 'rest_pause' && (
         <View className="mt-3 px-2 mb-1">
           <Text className="text-[11px] text-[#FF4500] font-bold mb-0.5">

@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { FileText, Save } from 'lucide-react-native';
+import type { ExerciseHistorySession } from '../../../api/workoutService';
 
 type ExerciseHistorySessionCardProps = {
-  session: any;
+  session: ExerciseHistorySession;
   index: number;
   locale: string;
   labels: {
@@ -63,7 +64,7 @@ export default function ExerciseHistorySessionCard({
         </Text>
       </View>
 
-      {session.sets.map((setItem: any) => (
+      {session.sets.map((setItem) => (
         <View
           key={setItem.id}
           className="flex-row justify-between items-center bg-black/40 p-3 rounded-2xl mb-2 border border-white/5"
