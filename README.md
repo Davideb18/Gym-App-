@@ -1,109 +1,102 @@
-# THE LAB: PRO - Training Management System 🦍🔬
+# Spotter AI - Gym App
 
-Welcome to **THE LAB**. This is a professional-grade fitness application built with Expo (React Native), Node.js, and Supabase.
+Spotter AI e una app mobile per pianificazione e tracking allenamenti, con backend dedicato e integrazione Supabase.
 
-This repository is a **monorepo**, meaning it contains both the mobile application and the backend server in a single place.
+Il repository e un monorepo con frontend React Native (Expo), backend Node.js/TypeScript e tipi condivisi.
 
----
+## Stack Tecnologico
 
-## 🚀 Guida Rapida per Collaboratori (Start Here)
+- Frontend: React Native, Expo, TypeScript, Zustand, React Query
+- Backend: Node.js, Express, TypeScript
+- Data/Auth: Supabase
+- Tooling: npm workspaces, ESLint, TypeScript
 
-Sei nuovo nel progetto? Ecco come configurare tutto sul tuo computer in pochi minuti.
+## Struttura Repository
 
-### 1. Prerequisiti
-
-Assicurati di avere installato:
-
-- **Node.js** (Versione 18 o superiore): [Scarica qui](https://nodejs.org/)
-- **Git**: [Scarica qui](https://git-scm.com/)
-- **Expo Go** (App sul tuo telefono): Scaricala da App Store o Google Play per testare l'app.
-
-### 2. Clonazione del Progetto
-
-Apri il terminale e scrivi:
-
-```bash
-git clone https://github.com/Davideb18/Gym-App-.git
-cd "Gym App"
+```text
+Gym App/
+├── frontend/       # App mobile Expo
+├── backend/        # API server e script
+├── shared/         # Tipi condivisi frontend/backend
+└── package.json    # Script monorepo
 ```
 
-### 3. Installazione Unificata
+## Requisiti
 
-Installa tutte le dipendenze per frontend e backend con un solo comando:
+- Node.js 18+
+- npm 9+
+- Expo Go (opzionale, per test rapido su device)
+
+## Setup Locale
+
+1. Installa dipendenze dal root:
 
 ```bash
 npm install
 ```
 
-### 4. Configurazione Ambiente (.env)
+2. Crea i file ambiente partendo dagli example:
 
-Il progetto include già i file `.env` necessari per connettersi al database di test e a Supabase. Non devi cambiare nulla, ma assicurati che esistano questi file:
+```bash
+cp frontend/.env.example frontend/.env
+cp backend/.env.example backend/.env
+```
 
-- `frontend/.env` (Contiene le chiavi Supabase)
-- `backend/.env` (Contiene la connessione al Database)
+3. Configura le variabili ambiente reali:
 
----
+- `frontend/.env`
+- `backend/.env`
 
-## 🛠️ Sviluppo (Running the App)
-
-Per avviare sia l'App (Frontend) che il Server (Backend) contemporaneamente, usa il comando magico:
+4. Avvio in sviluppo (frontend + backend):
 
 ```bash
 npm run dev
 ```
 
-### Cosa Succede?
-
-1. **Frontend**: Si aprirà il server di Expo. Inquadra il QR code con la fotocamera del tuo telefono (aprendo l'app **Expo Go**) per vedere l'app dal vivo.
-2. **Backend**: Il server Express partirà sulla porta `3001` per gestire la logica avanzata e l'AI.
-
-### Uso Da Palestra (Fuori Dal Wi-Fi Del PC)
-
-Se vuoi usare l'app anche quando telefono e PC non sono sulla stessa rete locale, avvia Expo in **tunnel**:
+5. Avvio in tunnel (utile quando PC e telefono non sono nella stessa rete):
 
 ```bash
 npm run dev:tunnel
 ```
 
-In questo modo il telefono puo collegarsi via internet al bundle Expo anche da remoto.
+## Variabili Ambiente
 
-Requisiti importanti:
+Frontend (`frontend/.env`):
 
-- Il PC deve restare acceso con il comando attivo.
-- Il telefono deve avere internet (rete mobile o Wi-Fi qualsiasi).
+- `EXPO_PUBLIC_SUPABASE_URL`: URL progetto Supabase
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: chiave anon pubblica Supabase
 
-### Uso Senza PC Acceso (Produzione)
+Backend (`backend/.env`):
 
-Per usarla da distante senza dipendere dal computer, devi installare una build standalone (APK/IPA) invece di Expo Go.
+- `PORT`: porta server Express (default 3001)
+- `DATABASE_URL`: connection string Postgres/Supabase
+- `TRANSLATE_LIMIT` (opzionale): limite record per script traduzioni
+- `TRANSLATE_DELAY_MS` (opzionale): delay tra traduzioni in ms
 
-Passi consigliati:
+## Script Principali
 
-1. Installa EAS CLI: `npm i -g eas-cli`
-2. Login Expo: `eas login`
-3. Dal folder frontend, crea build: `eas build --platform android` (o `--platform ios`)
-4. Installa la build sul telefono.
+Dal root:
 
-Dopo l'installazione, l'app funziona senza il server Expo locale del PC.
+- `npm run dev` - avvia backend e frontend insieme
+- `npm run dev:tunnel` - avvia backend + Expo tunnel
+- `npm run lint` - lint frontend e backend
+- `npm run typecheck` - typecheck frontend e backend
 
----
+Per workspace:
 
-## 📁 Struttura del Progetto
+- `npm run ios -w frontend`
+- `npm run android -w frontend`
+- `npm run build -w backend`
+- `npm run seed:free -w backend`
 
-```text
-Gym App/
-├── frontend/         # App Mobile (React Native + Expo)
-├── backend/          # Server API (Node.js + Prisma)
-├── shared/           # Tipi e Interfacce condivise (TypeScript)
-├── docs/             # Documentazione, Mockup e Roadmap
-└── package.json      # Gestione script globali
-```
+## Stato Attuale
 
----
+- Login social rimosso (Google/Facebook/Apple)
+- Flusso auth mantenuto su email/password + reset password
+- Branding allineato a Spotter AI
 
-## 🤝 Collaborazione
+## Note
 
-- **Push/Pull**: Prima di iniziare a lavorare, fai sempre un `git pull` per avere l'ultima versione.
-- **Branch**: Crea un nuovo branch per ogni funzionalità (`git checkout -b feature/nome-feature`).
-- **Database**: Usiamo Supabase. Se modifichi il database, ricordati di aggiornare lo schema Prisma nel backend.
-
-Buon allenamento e buon codice! 💪✨
+- Le credenziali non devono mai essere versionate.
+- Prima di aprire PR o pubblicare, eseguire sempre `npm run lint` e `npm run typecheck`.
+- I file `.env` non devono mai essere committati: usa solo i file `.env.example` come template.
