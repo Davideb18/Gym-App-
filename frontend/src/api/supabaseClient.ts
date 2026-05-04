@@ -8,6 +8,7 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Usiamo AsyncStorage su nativo per evitare limiti di dimensione del SecureStore.
+    // Web usa il comportamento di default, mobile persiste la sessione in locale.
     storage: Platform.OS === 'web' ? undefined : AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,

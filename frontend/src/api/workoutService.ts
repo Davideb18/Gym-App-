@@ -97,6 +97,7 @@ export const WorkoutService = {
     if (!exerciseIds.length)
       return {} as Record<string, Record<number, { reps?: number; weight?: number }>>;
 
+    // Query only completed sessions so the previous-set hints are based on finished training data.
     const { data, error } = await supabase
       .from('performed_sets')
       .select(
@@ -147,6 +148,7 @@ export const WorkoutService = {
 
     const result: Record<string, number> = {};
 
+    // Keep only the best estimated 1RM per exercise so the UI can surface a single progress number.
     ((data || []) as BestE1RMRow[]).forEach((row) => {
       const exerciseId = row.exercise_id;
       const reps = Number(row.reps);
@@ -159,6 +161,7 @@ export const WorkoutService = {
         weight <= 0
       )
         return;
+      // Epley formula: estimated 1RM = weight * (1 + reps / 30).
 
       const e1rm = weight * (1 + reps / 30);
       const prevBest = result[exerciseId] || 0;
@@ -186,6 +189,7 @@ export const WorkoutService = {
     isPremium: boolean = false,
   ) => {
     if (!isPremium) {
+      // Hard cap for free users: count templates first so the limit is enforced before inserting anything.
       const { count, error: countError } = await supabase
         .from('workout_templates')
         .select('*', { count: 'exact', head: true })
@@ -361,6 +365,8 @@ export const WorkoutService = {
           'rest_pause',
         ];
 
+        // Keep advanced set metadata in JSON so the default path stays small and flexible.
+        // Keep advanced set metadata in JSON so the default path stays small and flexible.
         return {
           target_reps_min: draftSet.reps && parsedReps ? parsedReps : null,
           target_reps_max: draftSet.reps && parsedReps ? parsedReps : null,

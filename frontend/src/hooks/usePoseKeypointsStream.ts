@@ -50,6 +50,7 @@ function buildSimulatedFrame(
   requiredJoints: PoseJointName[],
   now: number,
 ): PoseFrame {
+  // When the camera stream is not ready, generate a deterministic motion pattern so the UI still animates.
   const t = now / 1000;
   const oscillation = Math.sin(t * 1.6);
 
@@ -123,6 +124,7 @@ function _mapDetectorPoseToFrame(
   height: number,
   now: number,
 ): PoseFrame | null {
+  // Normalize detector coordinates into 0..1 values so the overlay works regardless of camera resolution.
   const keypoints = Array.isArray(pose?.keypoints) ? pose.keypoints : [];
   if (keypoints.length === 0 || width <= 0 || height <= 0) return null;
 
@@ -182,6 +184,7 @@ export function usePoseKeypointsStream({
       }
 
       try {
+        // Load TensorFlow lazily so the app does not pay the startup cost when pose tracking is unused.
         setSource('detector-initializing');
 
         const tf = await import('@tensorflow/tfjs');
@@ -226,6 +229,7 @@ export function usePoseKeypointsStream({
       return;
     }
 
+    // Fallback loop: keep the coach UI alive even before a real frame stream is wired in.
     // Placeholder stream until camera-frame input is connected to the detector.
     const interval = setInterval(() => {
       const now = Date.now();

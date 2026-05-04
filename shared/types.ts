@@ -70,7 +70,7 @@ export interface PlannedSet {
 }
 
 export interface WorkoutTemplateExercise {
-   id: string;
+  id: string;
   template_id: string;
   exercise_id: string;
   exercise_order: number;
@@ -78,7 +78,7 @@ export interface WorkoutTemplateExercise {
   exercises?: Exercise; // L'oggetto unito (la reference per avere il nome dell'esercizio!)
   notes?: string;
   created_at: string;
-  planned_sets?: PlannedSet[]; 
+  planned_sets?: PlannedSet[];
 }
 
 export interface WorkoutTemplateSet {

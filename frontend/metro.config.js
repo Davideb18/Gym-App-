@@ -1,9 +1,9 @@
-const path = require("path");
-const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
+const path = require('path');
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
 
 const projectRoot = __dirname;
-const workspaceRoot = path.resolve(projectRoot, "..");
+const workspaceRoot = path.resolve(projectRoot, '..');
 
 const config = getDefaultConfig(projectRoot);
 
@@ -11,8 +11,8 @@ const config = getDefaultConfig(projectRoot);
 config.watchFolders = [workspaceRoot];
 // 2. Fai in modo che risolva i pacchetti dai node_modules corretti
 config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, "node_modules"),
-  path.resolve(workspaceRoot, "node_modules"),
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-module.exports = withNativeWind(config, { input: "./global.css" });
+module.exports = withNativeWind(config, { input: './global.css' });

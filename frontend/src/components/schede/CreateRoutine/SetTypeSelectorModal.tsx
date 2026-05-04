@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { Lock, Unlock} from 'lucide-react-native';
+import { Lock, Unlock } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { SetType } from '../../../../../shared/types';
 
-export const SET_TYPES: { label: string, value: SetType, premium: boolean }[] = [
+export const SET_TYPES: { label: string; value: SetType; premium: boolean }[] = [
   { label: 'Normal', value: 'normal', premium: false },
   { label: 'Warmup', value: 'warmup', premium: true },
   { label: 'Failure', value: 'failure', premium: true },
@@ -25,14 +25,18 @@ export default function SetTypeSelectorModal({ visible, onClose, onSelect, isPre
   const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity 
-        activeOpacity={1} 
-        onPress={onClose} 
+      {/* Modal a scelta rapida: separa i set base dai set avanzati/premium senza appesantire il form. */}
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onClose}
         className="flex-1 justify-center bg-black/60 px-6"
       >
         <View className="bg-white rounded-[32px] overflow-hidden shadow-2xl">
+          {/* Il titolo è localizzato così il modal resta riutilizzabile in tutte le lingue supportate. */}
           <View className="p-6 border-b border-gray-100 bg-gray-50">
-            <Text className="text-xl font-black text-black text-center tracking-tight">{t('create_routine.set_types.title')}</Text>
+            <Text className="text-xl font-black text-black text-center tracking-tight">
+              {t('create_routine.set_types.title')}
+            </Text>
           </View>
           <ScrollView style={{ maxHeight: 380 }}>
             {SET_TYPES.map((type, idx) => (
@@ -42,19 +46,27 @@ export default function SetTypeSelectorModal({ visible, onClose, onSelect, isPre
                 onPress={() => onSelect(type.value, type.premium)}
                 className={`flex-row justify-between items-center px-6 py-5 ${idx < SET_TYPES.length - 1 ? 'border-b border-gray-50' : ''}`}
               >
-                <Text className={`text-lg font-bold ${type.premium && !isPremium ? 'text-gray-400' : 'text-black'}`}>
+                <Text
+                  className={`text-lg font-bold ${type.premium && !isPremium ? 'text-gray-400' : 'text-black'}`}
+                >
                   {t(`difficulty.${type.value}`)}
                 </Text>
-                
+
                 {type.premium && (
-                  <View className={`flex-row items-center px-3 py-1.5 rounded-full ${isPremium ? 'bg-black' : 'bg-[#EAB308]'}`}>
+                  <View
+                    className={`flex-row items-center px-3 py-1.5 rounded-full ${isPremium ? 'bg-black' : 'bg-[#EAB308]'}`}
+                  >
                     {isPremium ? (
                       <Unlock size={12} color="#FFF" />
                     ) : (
                       <Lock size={12} color="#000" />
                     )}
-                    <Text className={`text-[10px] font-black uppercase tracking-widest ml-1 ${isPremium ? 'text-white' : 'text-black'}`}>
-                      {isPremium ? t('create_routine.set_types.unlocked') : t('create_routine.set_types.premium')}
+                    <Text
+                      className={`text-[10px] font-black uppercase tracking-widest ml-1 ${isPremium ? 'text-white' : 'text-black'}`}
+                    >
+                      {isPremium
+                        ? t('create_routine.set_types.unlocked')
+                        : t('create_routine.set_types.premium')}
                     </Text>
                   </View>
                 )}

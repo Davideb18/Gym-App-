@@ -18,6 +18,7 @@ const MAX_TRANSLATE_QUERY_LENGTH = 450;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// In-memory cache to avoid translating the same text twice during large translation batches.
 const cache = new Map<string, string>();
 
 type QueryExecutor =
@@ -40,6 +41,7 @@ function getManualNameOverride(name?: string | null, target?: 'it' | 'es'): stri
 }
 
 function splitTextForTranslate(text: string, maxLen = MAX_TRANSLATE_QUERY_LENGTH): string[] {
+  // Break long descriptions into safe chunks so the translation endpoint is not overloaded.
   const normalized = text.trim();
   if (!normalized) return [];
   if (normalized.length <= maxLen) return [normalized];
@@ -107,6 +109,7 @@ async function translateText(
   const key = `${target}:${normalized}`;
   const fromCache = cache.get(key);
   if (fromCache) {
+    // Reuse the cached translation when the same sentence appears multiple times in the dataset.
     return fromCache;
   }
 

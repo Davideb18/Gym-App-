@@ -29,22 +29,22 @@ if (!Object.keys(RESOURCES).includes(defaultLanguage)) {
 }
 
 // 1. INIZIALIZZAZIONE SINCRONA (per spegnere l'errore "NO_I18NEXT_INSTANCE")
-i18n
-  .use(initReactI18next)
-  .init({
-    resources: RESOURCES,
-    lng: defaultLanguage,        // Lingua di partenza (quella del cell)
-    fallbackLng: 'en',           // La lingua di sicurezza
-    compatibilityJSON: 'v4',     // Obbligatorio in React Native
-    interpolation: {
-      escapeValue: false,        // Sicurezza per React
-    },
-    react: {
-      useSuspense: false,        // Spegne l'attesa di caricamento
-    }
-  });
+// Inizializziamo subito i18n all'avvio perché molte schermate leggono le stringhe al primo render.
+i18n.use(initReactI18next).init({
+  resources: RESOURCES,
+  lng: defaultLanguage, // Lingua di partenza (quella del cell)
+  fallbackLng: 'en', // La lingua di sicurezza
+  compatibilityJSON: 'v4', // Obbligatorio in React Native
+  interpolation: {
+    escapeValue: false, // Sicurezza per React
+  },
+  react: {
+    useSuspense: false, // Spegne l'attesa di caricamento
+  },
+});
 
 // 2. SOVRASCRITTURA ASINCRONA (Se l'utente aveva salvato un'altra lingua in passato, la aggiorniamo)
+// Se l'utente ha una preferenza salvata, la applichiamo dopo il bootstrap senza bloccare il render.
 AsyncStorage.getItem(LANGUAGE_KEY).then((savedLanguage) => {
   if (savedLanguage && Object.keys(RESOURCES).includes(savedLanguage)) {
     i18n.changeLanguage(savedLanguage);

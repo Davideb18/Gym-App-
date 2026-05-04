@@ -162,6 +162,7 @@ export default function ActiveWorkoutScreen() {
     staleTime: 60 * 1000,
   });
 
+  // Pull last performance and best E1RM only while the workout is active to keep the screen responsive.
   useEffect(() => {
     if (!lastPerformanceMap || !isActive) return;
     applyLastPerformance(lastPerformanceMap);
@@ -222,12 +223,10 @@ export default function ActiveWorkoutScreen() {
               completedSets,
               routineName: useActiveWorkout.getState().routineName,
               exercises: summaryExercises,
-              exerciseVolumeBars: summaryExercises
-                .slice(0, 6)
-                .map((ex) => ({
-                  label: ex.name.length > 9 ? `${ex.name.slice(0, 8)}…` : ex.name,
-                  value: Math.max(1, Math.round(ex.totalVolume / 100)),
-                })),
+              exerciseVolumeBars: summaryExercises.slice(0, 6).map((ex) => ({
+                label: ex.name.length > 9 ? `${ex.name.slice(0, 8)}…` : ex.name,
+                value: Math.max(1, Math.round(ex.totalVolume / 100)),
+              })),
               newPrs: saveResult.newPrs || [],
               muscleGroups: deriveMuscleGroups(summaryExercises.map((ex) => ex.name)),
               coachTips: buildCoachTips({

@@ -76,6 +76,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
   startWorkout: (template) => {
     useRestTimer.getState().stopTimer();
 
+    // Convert the stored template into a live session snapshot so edits do not mutate the original plan.
     // Trasformiamo la "Scheda" (Morta) in una "Sessione Live" (Viva)
     const liveExercises: LiveExercise[] = (template.workout_template_exercises || []).map(
       (te: WorkoutTemplateExercise) => {
@@ -125,6 +126,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
           ...ex,
           sets: ex.sets.map((s) => {
             if (s.id !== setId) return s;
+            // Reject invalid numeric input early so the session state never stores NaN or Infinity.
             if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
               return { ...s, [field]: undefined };
             }
@@ -162,6 +164,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
     let isCompleting = false;
     let restSeconds = 90;
 
+    // Flip the local set status first, then drive the rest timer from the actual set configuration.
     const updatedExercises = state.exercises.map((ex) => {
       if (ex.id !== exerciseId) return ex;
       return {
@@ -187,6 +190,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
   },
 
   finishWorkout: () => {
+    // Ending the workout must clear both the session snapshot and the rest timer.
     useRestTimer.getState().stopTimer();
     set({
       isActive: false,
@@ -200,6 +204,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>((set, get) => ({
 
   // FUNZIONE 5: Annullamento
   cancelWorkout: () => {
+    // Cancel uses the same cleanup path as finish to leave the store in a neutral state.
     useRestTimer.getState().stopTimer();
     set({
       isActive: false,
