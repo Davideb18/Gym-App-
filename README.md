@@ -1,102 +1,94 @@
-# Spotter AI - Gym App
+# Spotter AI - Gym Workout Tracker 🏋️‍♂️
 
-Spotter AI e una app mobile per pianificazione e tracking allenamenti, con backend dedicato e integrazione Supabase.
+Spotter AI is a comprehensive mobile application for workout planning and tracking. Built with a modern tech stack, it features a React Native frontend and a robust Node.js/TypeScript backend, fully integrated with Supabase for data and authentication.
 
-Il repository e un monorepo con frontend React Native (Expo), backend Node.js/TypeScript e tipi condivisi.
+## 🚀 Features
 
-## Stack Tecnologico
+- **Workout Planning:** Create and customize workout routines.
+- **Progress Tracking:** Log sets, reps, and weights to monitor your fitness journey.
+- **Secure Authentication:** Email and password authentication with secure session management.
+- **Cross-Platform:** Available for both iOS and Android via Expo.
 
-- Frontend: React Native, Expo, TypeScript, Zustand, React Query
-- Backend: Node.js, Express, TypeScript
-- Data/Auth: Supabase
-- Tooling: npm workspaces, ESLint, TypeScript
+## 🛠 Tech Stack
 
-## Struttura Repository
+This project is structured as a monorepo containing both the frontend and backend applications, sharing common TypeScript types.
+
+### Frontend (Mobile App)
+
+- **Framework:** React Native with Expo
+- **Language:** TypeScript
+- **State Management:** Zustand, React Query
+- **UI/UX:** Custom design system
+
+### Backend (API Server)
+
+- **Runtime:** Node.js
+- **Framework:** Express
+- **Language:** TypeScript
+- **Database & Auth:** Supabase (PostgreSQL)
+
+## 📁 Repository Structure
 
 ```text
 Gym App/
-├── frontend/       # App mobile Expo
-├── backend/        # API server e script
-├── shared/         # Tipi condivisi frontend/backend
-└── package.json    # Script monorepo
+├── frontend/       # React Native Expo mobile app
+├── backend/        # Express.js API server
+├── shared/         # Shared TypeScript types across frontend and backend
+└── package.json    # Monorepo configuration
 ```
 
-## Requisiti
+## ⚙️ Getting Started
 
-- Node.js 18+
-- npm 9+
-- Expo Go (opzionale, per test rapido su device)
+### Prerequisites
 
-## Setup Locale
+- Node.js (v18+)
+- npm (v9+)
+- Expo Go (optional, for testing on a physical device)
 
-1. Installa dipendenze dal root:
+### Local Setup
 
-```bash
-npm install
-```
+1. **Clone the repository and install dependencies:**
 
-2. Crea i file ambiente partendo dagli example:
+   ```bash
+   git clone <your-repo-url>
+   cd "Gym App"
+   npm install
+   ```
 
-```bash
-cp frontend/.env.example frontend/.env
-cp backend/.env.example backend/.env
-```
+2. **Environment Configuration:**
+   Copy the example environment files and fill in your actual credentials.
 
-3. Configura le variabili ambiente reali:
+   ```bash
+   cp frontend/.env.example frontend/.env
+   cp backend/.env.example backend/.env
+   ```
 
-- `frontend/.env`
-- `backend/.env`
+   **Important:** Never commit your `.env` files. Ensure you have your own Supabase project configured.
 
-4. Avvio in sviluppo (frontend + backend):
+3. **Run the Development Server:**
+   This command starts both the backend API and the Expo frontend simultaneously.
+   ```bash
+   npm run dev
+   ```
+   _(Use `npm run dev:tunnel` if your PC and mobile device are on different networks)._
 
-```bash
-npm run dev
-```
+## 📜 Scripts
 
-5. Avvio in tunnel (utile quando PC e telefono non sono nella stessa rete):
+**Root Workspace:**
 
-```bash
-npm run dev:tunnel
-```
+- `npm run dev` - Start backend and frontend simultaneously
+- `npm run dev:tunnel` - Start backend and Expo via tunnel
+- `npm run lint` - Run ESLint on both workspaces
+- `npm run typecheck` - Run TypeScript compiler checks on both workspaces
 
-## Variabili Ambiente
+**Specific Workspaces:**
 
-Frontend (`frontend/.env`):
+- `npm run ios -w frontend` - Launch iOS simulator
+- `npm run android -w frontend` - Launch Android emulator
+- `npm run build -w backend` - Build the backend API
+- `npm run seed:free -w backend` - Seed the database
 
-- `EXPO_PUBLIC_SUPABASE_URL`: URL progetto Supabase
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: chiave anon pubblica Supabase
+## 🛡️ Status & Notes
 
-Backend (`backend/.env`):
-
-- `PORT`: porta server Express (default 3001)
-- `DATABASE_URL`: connection string Postgres/Supabase
-- `TRANSLATE_LIMIT` (opzionale): limite record per script traduzioni
-- `TRANSLATE_DELAY_MS` (opzionale): delay tra traduzioni in ms
-
-## Script Principali
-
-Dal root:
-
-- `npm run dev` - avvia backend e frontend insieme
-- `npm run dev:tunnel` - avvia backend + Expo tunnel
-- `npm run lint` - lint frontend e backend
-- `npm run typecheck` - typecheck frontend e backend
-
-Per workspace:
-
-- `npm run ios -w frontend`
-- `npm run android -w frontend`
-- `npm run build -w backend`
-- `npm run seed:free -w backend`
-
-## Stato Attuale
-
-- Login social rimosso (Google/Facebook/Apple)
-- Flusso auth mantenuto su email/password + reset password
-- Branding allineato a Spotter AI
-
-## Note
-
-- Le credenziali non devono mai essere versionate.
-- Prima di aprire PR o pubblicare, eseguire sempre `npm run lint` e `npm run typecheck`.
-- I file `.env` non devono mai essere committati: usa solo i file `.env.example` come template.
+- Social login (Google/Facebook/Apple) is currently disabled; relying on Email/Password authentication.
+- To ensure code quality, always run `npm run lint` and `npm run typecheck` before pushing changes.
